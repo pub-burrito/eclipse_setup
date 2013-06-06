@@ -1,0 +1,12 @@
+package com.cloud.test.sdk.integration;
+
+import android.test.ActivityInstrumentationTestCase2;
+
+public class BaseStepDef extends ActivityInstrumentationTestCase2<CucumberActivity>{
+
+	public BaseStepDef(Class<CucumberActivity> activityClass) {
+		super(activityClass);
+		CloudValues.instnace(getActivity());
+	}
+
+}

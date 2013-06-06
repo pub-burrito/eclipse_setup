@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.cloud.android.sdk</groupId>
+    <artifactId>CloudSDK-IntegrationTests</artifactId>
+    <packaging>apk</packaging>
+    
+    <version>1.1.4-SNAPSHOT</version>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>com.google.android</groupId>
+            <artifactId>android</artifactId>
+            <version>2.2.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.android</groupId>
+            <artifactId>android-test</artifactId>
+            <version>2.2.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>info.cukes</groupId>
+            <artifactId>cucumber-android</artifactId>
+            <version>1.1.4-SNAPSHOT</version>
+            <type>apklib</type>
+            <scope>compile</scope>
+        </dependency>
+        <!-- <dependency>
+            <groupId>info.cukes</groupId>
+            <artifactId>cucumber-junit</artifactId>
+            <version>1.1.4-SNAPSHOT</version>
+        </dependency> -->
+
+        <dependency>
+	      <groupId>com.cloud.sdk.android</groupId>
+	      <artifactId>CloudSDK</artifactId>    
+	      <version>0.2.9-SNAPSHOT</version>
+	      <type>jar</type>
+	      <exclusions>
+	          <exclusion>
+	              <groupId>com.google.android</groupId>
+	              <artifactId>annotations</artifactId>
+	          </exclusion>
+	      </exclusions>
+	    </dependency>
+    </dependencies>
+    
+    <build>
+        <sourceDirectory>src</sourceDirectory>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>com.jayway.maven.plugins.android.generation2</groupId>
+                    <artifactId>android-maven-plugin</artifactId>
+                    <version>3.5.3</version>
+                    <extensions>true</extensions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>com.jayway.maven.plugins.android.generation2</groupId>
+                <artifactId>android-maven-plugin</artifactId>
+                <configuration>
+                    <sdk>
+                        <!-- api level 8 = platform 2.2.1 -->
+                        <platform>8</platform>
+                    </sdk>
+                    <undeployBeforeDeploy>true</undeployBeforeDeploy>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- <pluginRepositories>
+	  	  <pluginRepository>
+	          <id>oss.sonatype.org-jayway-releases</id>
+	          <name>Jayway OpenSource RELEASEs on Sonatype.org</name>
+	          <url>http://oss.sonatype.org/content/repositories/jayway-releases/</url>
+	      </pluginRepository>
+	      <pluginRepository>
+	          <id>oss.sonatype.org-jayway-snapshots</id>
+	          <name>Jayway OpenSource SNAPSHOTs on Sonatype.org</name>
+	          <url>http://oss.sonatype.org/content/repositories/jayway-snapshots/</url>
+	          <snapshots>
+	              <enabled>true</enabled>
+	          </snapshots>
+	      </pluginRepository>
+	  </pluginRepositories>
+    
+    
+    <build>        
+        Used to be able to perform Manifest Mening, see configuration for android-maven-plugin below
+	    <resources>
+		    <resource>
+		        <targetPath>${project.build.directory}</targetPath>
+		        <filtering>true</filtering>
+		        <directory>${basedir}</directory>
+		        <includes>
+		            <include>AndroidManifest.xml</include>
+		        </includes>
+		    </resource>
+		</resources>
+        
+        <sourceDirectory>src</sourceDirectory>
+        
+        <plugins>
+            
+             Disabling default resource copying so Maven Android plugin can do its thing with resources prior to packaging
+		    <plugin>
+	            <artifactId>maven-resources-plugin</artifactId>
+	            <version>2.6</version>
+	            <executions>
+	                <execution>
+	                    <phase>initialize</phase>
+	                    <goals>
+	                        <goal>resources</goal>
+	                    </goals>
+	                </execution>
+					<execution>
+	                    <id>default-resources</id>
+	                    <phase>DISABLED</phase>
+	                </execution>
+	            </executions>
+	            
+	            <configuration>
+	                <encoding>UTF-8</encoding>
+	            </configuration>
+	        </plugin>
+        	 Maven Android to perform APK packaging via Maven instead of Eclipse built-in build process
+		    <plugin>
+				<groupId>com.jayway.maven.plugins.android.generation2</groupId>
+				<artifactId>android-maven-plugin</artifactId>
+				<version>3.6.0</version>
+		
+				<extensions>true</extensions>
+				<configuration>
+					<androidManifestFile>${project.build.directory}/AndroidManifest.xml</androidManifestFile>
+					<mergeManifests>true</mergeManifests>
+					<assetsDirectory>${project.basedir}/assets</assetsDirectory>
+					<resourceDirectory>${project.basedir}/res</resourceDirectory>
+					<nativeLibrariesDirectory>${project.basedir}/src/main/native</nativeLibrariesDirectory>
+					<sdk>
+						<platform>17</platform>
+					</sdk>
+					<undeployBeforeDeploy>true</undeployBeforeDeploy>
+				</configuration>
+			</plugin>
+        </plugins>
+    </build> -->
+</project>

@@ -1,0 +1,413 @@
+package com.cloud.framework.annotations;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import roboguice.util.Ln;
+
+import com.google.inject.name.Named;
+
+/**
+ * <!--
+ * ReflectionUtil.java
+ * -->
+ * Provides auxiliary methods to handle reflection resolution and annotation info gathering
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date Jan 24, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+public class ReflectionUtil {
+	
+	@SuppressWarnings("serial")
+	static Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<Class<?>, Class<?>>() {
+		{
+	         put(boolean.class, Boolean.class);
+	         put(byte.class, Byte.class);
+	         put(char.class, Character.class);
+	         put(short.class, Short.class);
+	         put(int.class, Integer.class);
+	         put(long.class, Long.class);
+	         put(double.class, Double.class);
+	         put(float.class, Float.class);
+	         put(void.class, Void.class);
+		}
+    };
+	
+	//ONEDAY: https://www.pivotaltracker.com/story/show/50764733 
+	public static int PLATFORM_EXTRA_DEPTH = 1;
+	
+	/**
+	 * Utility to get method definition of currently executing method in stack.
+	 * 
+	 * @param depth		How many levels back in the stack call should it navigate to fin the desired method name.
+	 * @param params	Parameter signature for desired method whose definitions are to be retrieved.
+	 * @return
+	 */
+    public static Method getCurrentMethod(int depth, Object... params) {
+        try {
+        	depth += PLATFORM_EXTRA_DEPTH;
+        	
+        	//ONEDAY: https://www.pivotaltracker.com/story/show/50764921
+            StackTraceElement[] stackTrace = new Throwable().getStackTrace();
+            
+            /*
+            for (int i = 0; i < Math.min(stackTrace.length, depth + 4); i++) {
+				Ln.v("Method[%s]: %s.%s", i, stackTrace[i].getClassName(), stackTrace[i].getMethodName());
+			}
+			*/
+            
+			StackTraceElement element = stackTrace[depth];
+            
+            String className = element.getClassName();
+            String methodName = element.getMethodName();
+			Class<?> callingClass = Class.forName(className);
+			
+			//Ln.i("ClassName: %s", className);
+			//Ln.i("MethodName: %s", methodName);
+			
+			if (params != null && params.length > 0) {
+				List<Class<?>> paramTypes = new ArrayList<Class<?>>();
+				for (Object obj : params) {
+					paramTypes.add(obj == null ? null : obj.getClass());
+				}
+				
+				try {
+					return callingClass.getDeclaredMethod(methodName, paramTypes.toArray(new Class<?>[0]));
+				} catch (NoSuchMethodException e) {
+					//e.printStackTrace();
+					//couldn't find method with params (null values can cause mismatch in number of params)
+					//it's ok, try by number of params and then by name disregarding parameters
+				}
+				
+				Method matchingMethod = getMethod(callingClass, methodName, paramTypes);
+				if (matchingMethod != null) {
+					return matchingMethod;
+				}
+			}
+            
+            return getMethod(callingClass, methodName);
+            
+        } catch (Exception e) {
+            //Ln.e(e, "Error reflecting name of current method");
+        	e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static Method getMethod(Class<?> callingClass, String methodName, List<Class<?>> paramTypes) {
+		Class<?> kls = callingClass;
+		
+		do {
+		    for(final Method candidate : kls.getDeclaredMethods()){
+		        if(candidate.getName().equals(methodName)){
+		        	candidate.setAccessible(true);
+		        	
+		        	boolean matches = paramTypes.size() == getNamedParameters(candidate).size();
+		        	
+		        	//Ln.v("getMethod: %s - %s = %s (%s)", methodName, candidate, matches, paramTypes);
+		        	if (candidate.getParameterTypes().length == paramTypes.size()){
+		        		matches = true;
+		        		
+			        	Class<?>[] methodParamTypes = candidate.getParameterTypes();
+			        	for (int i = 0; i < methodParamTypes.length; i++) {
+			        		Class<?> methodParamType = methodParamTypes[i];
+							Class<?> paramType = paramTypes.get(i);
+							
+							//converting primitive types into object types to make sure we're always comparing compatible signatures
+							if (methodParamType.isPrimitive()) 					methodParamType = primitiveWrapperMap.get(methodParamType);
+							if (paramType != null && paramType.isPrimitive()) 	paramType 		= primitiveWrapperMap.get(paramType);
+		
+							//boolean paramMatches =
+							matches &= 
+			        			(methodParamType.equals(paramType) || 
+			        			paramType == null ||
+			        			methodParamType.isAssignableFrom(paramType)); 
+							
+							/*
+							//trying methods that match superclasses
+							paramType = paramType.getSuperclass();
+							
+							while (paramType != null && !paramMatches) {
+								paramMatches = 
+					        			(methodParamType.equals(paramType) || 
+					        			paramType == null);
+								
+								paramType = paramType.getSuperclass();
+							}
+							
+							matches &= paramMatches; 
+							 */
+						}
+		        	}
+		        	//Ln.v("getMethod: %s - %s = %s (%s)", methodName, candidate, matches, paramTypes);
+		        	
+		        	if (matches) {
+		        		return candidate;
+		        	}
+		        }
+		    }
+		    kls = kls.getSuperclass();
+		} while(kls != null);
+	
+		return null;
+	}
+    
+	public static Method getMethod(Class<?> callingClass, String methodName) {
+		Class<?> kls = callingClass;
+
+		do {
+		    for(final Method candidate : kls.getDeclaredMethods()){
+		        if(candidate.getName().equals(methodName)){
+		        	candidate.setAccessible(true);
+		            return candidate;
+		        }
+		    }
+		    kls = kls.getSuperclass();
+		} while(kls != null);
+	
+		return null;
+	}
+	
+	public static String getStaticFieldNameByValue(Class<?> callingClass, Object value) {
+		Field[] fields = callingClass.getFields();
+		
+		try {
+			for (Field field : fields) {
+				String fieldName = field.getName();
+				Object fieldValue = field.get(null);
+				
+				//Ln.v("Field %s: %s", field, fieldValue);
+				
+				if (fieldValue != null&& fieldValue.equals(value)) {
+					return fieldName;
+				}
+			}
+		} catch (Exception e) {
+			Ln.e(e, "Error getting fieldName");
+		}
+		
+		return null;
+	}
+	
+	
+	/**
+	 * Retrieves the annotation values represented by <b>annotationClass</b> from the specified <b>methodName</b> declared in <b>callingClass</b>
+	 *  
+	 * @param callingClass
+	 * @param methodName
+	 * @param annotationClass
+	 * @return
+	 */
+	public static <T extends Annotation> T getMethodAnnotation(Class<?> callingClass, String methodName, Class<T> annotationClass) {
+		//Ln.v("--Getting annotation %s for %s", annotationClass, callingClass);
+		
+		Method method = getMethod(callingClass, methodName);
+		
+		//Ln.v("--Annotation %s for method %s in %s", annotationClass, method, callingClass);
+		if (method != null) {
+			return method.getAnnotation(annotationClass);
+		} else {
+			return null;
+		}
+	}
+    
+	/**
+	 * Retrieves list of names of parameters in specified method that have been annotated with {@link Named}.
+	 * 
+	 * @param method
+	 * @return
+	 */
+    public static List<String> getNamedParameters(Method method) {
+		List<String> namedValues = new ArrayList<String>();
+		
+		Class<?>[] types = method.getParameterTypes();
+		Annotation[][] params = method.getParameterAnnotations();
+		
+		for (int i = 0; i < types.length; i++) {
+			for (Annotation annotation : params[i]) {
+				if (annotation instanceof Named) {
+					namedValues.add(((Named) annotation).value());
+				}
+			}
+		}
+
+		return namedValues;
+    }
+    
+    /**
+	 * Retrieves the Class definition of the class &lt;A&gt; used as a generic argument to a generic class represented by Class&lt;A&gt;.
+	 *
+     * Type <A> needs to be a Generic&lt;...B...&gt; class whose parent class is Generic and position index needs to match the position of B within the generic declaration
+     * 
+     * @param genericClass
+     * @param index
+     * @return
+     */
+	public static <A, B> Class<B> getGenericArgumentClass(Class<A> genericClass, int index) {
+		Type argumentType = getGenericArgumentType(genericClass, index);
+		
+		try {
+			return getClass(argumentType);
+		
+		} catch (ClassCastException e) {
+			throw new RuntimeException(String.format("Could not identify class of generic argument #%s of class %s. Found: %s", index, genericClass.getName(), argumentType), e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <B> Class<B> getClass(Type argumentType) {
+		
+		if (argumentType instanceof ParameterizedType) { //the parameter type of the generic class is itself generic :S - ie: List<A> where A = Pair<String, String>
+			return (Class<B>) ((ParameterizedType) argumentType).getRawType();
+			
+		} else if (argumentType instanceof GenericArrayType) {
+			return (Class<B>) Array.newInstance(((Class<B>) ((GenericArrayType) argumentType).getGenericComponentType()), 0).getClass();
+			
+		} else {
+			return (Class<B>) argumentType;
+		}
+	}
+
+	/**
+	 * Retrieves the Type definition of the class &lt;A&gt; used as a generic argument to a generic class represented by Class&lt;A&gt;.
+	 * 
+	 * @param genericClass
+	 * @param index
+	 * @return
+	 */
+	public static <A> Type getGenericArgumentType(Class<A> genericClass, int index) {
+		//if genericClass superclass is generic, use that, otherwise try its superclass' superclass.
+		ParameterizedType genericSuperclass = (ParameterizedType)
+				(genericClass.getGenericSuperclass() instanceof ParameterizedType ?
+					genericClass.getGenericSuperclass() :
+					genericClass.getSuperclass().getGenericSuperclass()
+				);
+		
+		Type[] genericTypeArguments = genericSuperclass.getActualTypeArguments();
+		
+		if (index > genericTypeArguments.length - 1) {
+			throw new RuntimeException(
+				String.format(
+					"Could not identify class of generic argument #%s of class %s. It's either not generic or index of parameter is too long: %s", 
+					index, genericClass.getName(), Arrays.asList(genericTypeArguments)
+				)
+			);
+		}
+		
+		Type argumentType = genericTypeArguments[index];
+		return argumentType;
+	}
+
+	public static boolean isGeneric(Type genericType, Type rawType) {
+		return (genericType instanceof ParameterizedType) && ((ParameterizedType) genericType).getRawType().equals(rawType);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public static boolean isEnum(Type type) {
+		return (type instanceof Class) && ((Class) type).isEnum();
+	}
+	
+	public static <T> int getInheritanceLevel(
+			final Class<T> parentClass,
+			final Class<? extends T> measuredClass
+			) 
+	{
+		//if parent class is subclass of CloudServiceRequest, it means there are more hooks to look up in the stack trace to find the right calling method.
+		int inheritanceLevel = 0;
+		
+		Class<?> superclass = measuredClass.getSuperclass();
+		while (superclass != null && !superclass.equals(parentClass)) {
+			inheritanceLevel++;
+			superclass = superclass.getSuperclass();
+		}
+		return inheritanceLevel;
+	}
+	
+	/**
+	 * Copies all the private non-static properties from the source Object to the
+	 * destination Object. This method will only copy over the methods with the same
+	 * name and modifiers
+	 * @param source - the object where field information is coming from
+	 * @param destination - the object to copy the fields over to
+	 * @return the new modified object
+	 */
+	public static Object copyObjectPropertiesFrom(Object source, Object destination){
+		Class<?> srcClass = source.getClass();
+		Class<?> destClass = destination.getClass();
+		
+		if (srcClass.isAnonymousClass()) srcClass = srcClass.getSuperclass();
+		if (destClass.isAnonymousClass()) destClass = destClass.getSuperclass();
+		
+		if (srcClass.isAssignableFrom(destClass) || destClass.isAssignableFrom(srcClass)) {
+			
+			Field[] srcFields = srcClass.getDeclaredFields();
+			Field[] destFields = destClass.getDeclaredFields();
+			
+			for (Field srcField : srcFields) {
+				if ( !isStaticOrFinal(srcField.getModifiers())) {
+					
+					for (Field destField : destFields) {
+						if ( !isStaticOrFinal(destField.getModifiers()) && 
+							srcField.getName().equals(destField.getName()) ) {
+							
+							try {
+								destField.setAccessible(true);
+								
+								srcField.setAccessible(true);
+								srcField.set(destination, srcField.get(source));
+								
+							} catch (IllegalAccessException e) {
+								Ln.e("Field name %@ - nope", destField.getName());
+							}
+							
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		return null;
+	}
+
+	/**
+	 * Determines if a {@link Field} or {@link Method} is {@link Modifier#STATIC} or {@link Modifiers#FINAL}
+	 * @param srcModifiers
+	 * @return
+	 */
+	private static boolean isStaticOrFinal(final int srcModifiers) {
+		return hasModifier(srcModifiers, Modifier.STATIC) || hasModifier(srcModifiers, Modifier.FINAL);
+	}
+	
+	/**
+	 * Determines if a {@link Field} or {@link Method} have the a specific {@link Modifier}
+	 * @param elementModifiers the return value of {@link Field#getModifiers()} or {@link Method#getModifiers()}
+	 * @param desiredModifiers a list of all the modifiers you want to check. See {@link Modifier}
+	 * @return True if the Modifiers are contained, false otherwise.
+	 */
+	public static boolean hasModifier(int elementModifiers, int... desiredModifiers){
+		
+		int combinedModifiers = 0x0;
+		
+		for (int modifier : desiredModifiers) {
+			combinedModifiers |= modifier;
+		}
+		
+		return (elementModifiers & combinedModifiers) == combinedModifiers;
+	}
+
+	
+}

@@ -1,0 +1,130 @@
+package com.cloud.test.sdk.cucumber;
+
+import roboguice.util.Ln;
+import android.test.ActivityInstrumentationTestCase2;
+
+import com.cloud.sdk.Cloud;
+import com.cloud.sdk.service.auth.CloudCredentials;
+import com.cloud.sdk.service.sync.CloudFileItem;
+import com.cloud.sdk.service.sync.CloudSyncbox;
+import com.cloud.sdk.threading.CloudCallHandler;
+
+import cucumber.api.java.After;
+import cucumber.api.java.Before;
+import cucumber.api.java.bm.Bagi;
+import cucumber.api.java.en.Given;
+import cucumber.api.java.en.Then;
+import cucumber.api.java.en.When;
+
+public class AddStepdefs extends ActivityInstrumentationTestCase2<CucumberActivity>{
+	
+	
+	public AddStepdefs() {
+		super(CucumberActivity.class);
+		System.err.println("Constructor");
+	}
+
+	private static final String key = "2fa0f6db92095ae37af253ebed7b8d25b3bf60c0eb532cccfbd97a11d9d83542";
+	private static final String secret = "f83d3e0dc0f5a7e6a871853129c8d19db3a2ae8568f355c242ccfa399965f26e";
+	
+	
+	CloudSyncbox syncbox;
+	CloudCredentials credentials;
+	
+	@Before
+    public void before() {
+		Cloud.init(getActivity());
+		System.err.println(":D");
+    }
+
+    @After
+    public void after() {
+//        assertEquals(3, 3);
+    }
+	
+	
+	@Given("^I have a Syncbox$")
+	public void I_have_a_Syncbox(){
+		System.err.println(":D");
+
+		credentials = new CloudCredentials(key, secret);
+		
+		CloudSyncbox
+			.create()
+			.get(new CloudCallHandler<CloudSyncbox>() {
+				
+				@Override
+				public void onSuccess(CloudSyncbox responseData) throws Exception {
+					syncbox = responseData;
+					assertTrue(syncbox != null);
+				}
+				
+				@Override
+				public void onError(Exception error) {
+					fail(error.getMessage());
+				}
+			});
+	}
+	
+	
+	@Given("^I Add File \"([^\"]*)\"$")
+	public void I_Add_File(String arg1) throws Throwable {
+
+		syncbox
+			.addFile(arg1, "/")
+			.get(new CloudCallHandler<CloudFileItem>(){
+
+			@Override
+			public void onSuccess(CloudFileItem responseData) throws Exception {
+				assertTrue(responseData != null);
+				
+			}
+
+			@Override
+			public void onError(Exception error) {
+				fail(error.getMessage());
+			}
+			
+		});
+		
+		fail();
+		
+	
+	}
+	
+	@When("^I wait (\\d+) Seconds$")
+	public void I_wait_Seconds(int arg1) throws Throwable {
+	// Express the Regexp above with the code you wish you had
+
+	}
+	
+	@Then("^The File \"([^\"]*)\" Should Exist In The SyncBox$")
+	public void The_File_Should_Exist_In_The_SyncBox(String arg1) throws Throwable {
+	// Express the Regexp above with the code you wish you had
+		
+	}
+	
+	@Given("^I Add the Files \"([^\"]*)\"$")
+	public void I_Add_the_Files(String arg1) throws Throwable {
+	// Express the Regexp above with the code you wish you had
+
+	}
+	
+	@Then("^The Files \"([^\"]*)\" Should Exist In The SyncBox$")
+	public void The_Files_Should_Exist_In_The_SyncBox(String arg1) throws Throwable {
+	// Express the Regexp above with the code you wish you had
+		
+	}
+	
+	@Given("^I Add the Directories \"([^\"]*)\"$")
+	public void I_Add_the_Directories(String arg1) throws Throwable {
+	// Express the Regexp above with the code you wish you had
+
+	}
+	
+	@Then("^The Directory \"([^\"]*)\" Should Exist In The SyncBox$")
+	public void The_Directory_Should_Exist_In_The_SyncBox(String arg1) throws Throwable {
+	// Express the Regexp above with the code you wish you had
+
+	}
+}

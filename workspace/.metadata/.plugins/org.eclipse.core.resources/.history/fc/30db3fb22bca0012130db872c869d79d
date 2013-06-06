@@ -1,0 +1,158 @@
+package com.cloud.sdk.service.sync;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Map;
+
+import roboguice.util.Ln;
+
+import com.cloud.framework.service.model.sync.SyncBox;
+import com.cloud.framework.service.process.sync.CloudSyncEngine;
+import com.cloud.framework.threading.AsyncRunnable.ExecutionCallback;
+import com.cloud.framework.threading.AsyncRunnable.ExecutionThread;
+import com.cloud.framework.threading.AsyncRunnable.ThreadAwareCallback;
+import com.cloud.sdk.service.auth.CloudCredentials;
+import com.cloud.sdk.service.sync.CloudSyncboxActivityListener.CloudFileStatus;
+
+/**
+ * <!--
+ * CloudSyncboxOnDemandStatusListener.java
+ * -->
+ * Base class to be used by Syncbox consumers to listen to specific events triggered within the flow of the Engine's internal processes, ie: connected/disconnected as well as change detection etc.
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date Mar 14, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+public abstract class CloudSyncboxOnDemandStatusListener {
+
+	
+	Class<?> listenerType = getClass();
+	
+	/*
+	 * marking methods non abstract empty implementations so they are all optional for overriding by subclasses
+	 */
+	public void onConnected(CloudSyncbox syncbox) {}
+	public void onDisconnected(CloudSyncbox syncbox) {}
+	public void onError(CloudSyncbox syncbox, Exception error) {}
+	public void onChangeDetected(CloudSyncbox syncbox) {}
+	
+	/*
+	 * Callback method enums
+	 */
+	private static enum SyncboxStateCallback implements ExecutionCallback {
+		CONNECTED		("onStarted"),
+		DISCONNECTED	("onStopped"),
+		ERROR  			("onError"),
+		CHANGE_DETECTED	("onChangeDetected"),
+		;
+		
+		//enum attributes
+		private final String methodName;
+		
+		private SyncboxStateCallback(String methodName) {
+			this.methodName = methodName;
+		}
+
+		@Override
+		public String methodName() {
+			return methodName;
+		}
+
+		@Override
+		public boolean isFinalState() {
+			return false;
+		}
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncbox} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncbox
+	 */
+	void connected(final CloudSyncbox syncbox) {
+		new ThreadAwareCallback(SyncboxStateCallback.CONNECTED, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncbox.class }, 
+					
+				new Runnable() {
+					public void run() {
+						try {
+							onConnected(syncbox);
+						} catch (Exception e) {
+							error(syncbox, e);
+						}
+					}
+				}, 
+				null
+			
+			).run();
+	}
+
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncbox
+	 */
+	void disconnected(final CloudSyncbox syncbox) {
+		new ThreadAwareCallback(SyncboxStateCallback.DISCONNECTED, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class, Map.class }, 
+					
+				new Runnable() {
+					public void run() {
+						try {
+							onDisconnected(syncbox);
+						} catch (Exception e) {
+							error(syncbox, e);
+						}
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncbox} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncbox
+	 * @param error
+	 */
+	void error(final CloudSyncbox syncbox, final Exception error) {
+		new ThreadAwareCallback(SyncboxStateCallback.ERROR, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncbox.class, Exception.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onError(syncbox, error);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncbox} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncbox
+	 */
+	void changesDetected(final CloudSyncbox syncbox) {
+		new ThreadAwareCallback(SyncboxStateCallback.CHANGE_DETECTED, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncbox.class}, 
+					
+				new Runnable() {
+					public void run() {
+						onChangeDetected(syncbox);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+}

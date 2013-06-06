@@ -1,0 +1,470 @@
+package com.cloud.framework.service.process.sync;
+
+import java.io.Serializable;
+import java.util.Map;
+
+import com.cloud.framework.service.model.sync.SyncEvent.SyncEventType;
+import com.cloud.framework.service.model.sync.SyncItem;
+import com.cloud.framework.threading.AsyncRunnable.ExecutionCallback;
+import com.cloud.framework.threading.AsyncRunnable.ExecutionThread;
+import com.cloud.framework.threading.AsyncRunnable.ThreadAwareCallback;
+
+/**
+ * <!--
+ * CloudSyncEngineListener.java
+ * -->
+ * Base class to be used by Sync Engine consumers to listen to specific events triggered within the flow of the Engine's internal processes, ie: sync triggered, paused for no connectivity available, etc.
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date Mar 14, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+public abstract class CloudSyncEngineListener {
+
+	Class<?> listenerType = getClass();
+	
+	/*
+	 * Sync Engine Execution State
+	 */
+	//optional
+	public void onStart(CloudSyncEngine syncEngine) {} 
+	public void onStop(CloudSyncEngine syncEngine) {} 	
+	public void onPause(CloudSyncEngine syncEngine) {} 	
+	public void onResume(CloudSyncEngine syncEngine) {} 
+	
+	//required
+	public abstract void onSyncStart(CloudSyncEngine syncEngine);
+	public abstract void onSyncEnd(CloudSyncEngine syncEngine, Map<String, String> info);
+	public abstract void onSyncError(CloudSyncEngine syncEngine, Exception error);
+	
+	//optional
+	public void onPushConnect(CloudSyncEngine syncEngine) {}
+	public void onPushDisconnect(CloudSyncEngine syncEngine) {}
+	public void onPushError(CloudSyncEngine syncEngine, Exception error) {}
+	public void onChangeDetected(CloudSyncEngine syncEngine) {}
+	
+	/*
+	 * SyncFile State Change
+	 */
+	//optional
+	public void onFileChange(CloudSyncEngine syncEngine, CloudSyncFileStatus status, Map<String, String> info) {} 										
+	public void onFileUpload(CloudSyncEngine syncEngine, SyncItem fileItem, int bytesUploaded, int totalBytesUploaded, int totalBytesExpected) {} 		
+	public void onFileDownload(CloudSyncEngine syncEngine, SyncItem fileItem, int bytesDownloaded, int totalBytesDownloaded, int totalBytesExpected) {} 
+	
+	/*
+	 * Callback method enums
+	 */
+	private static enum EngineExecutionCallback implements ExecutionCallback {
+		START	 	("onStart"),
+		STOP	 	("onStop"),
+		PAUSE	 	("onPause"),
+		RESUME	 	("onResume"),
+		
+		SYNC_START	("onSyncStart"),
+		SYNC_END	("onSyncEnd"),
+		SYNC_ERROR  ("onSyncError"),
+		
+		PUSH_CONNECT	("onPushConnect"),
+		PUSH_DISCONNECT	("onPushDisconnect"),
+		PUSH_ERROR  	("onPushError"),
+		CHANGE_DETECTED	("onChangeDetected"),
+		;
+		
+		//enum attributes
+		private final String methodName;
+		
+		private EngineExecutionCallback(String methodName) {
+			this.methodName = methodName;
+		}
+
+		@Override
+		public String methodName() {
+			return methodName;
+		}
+
+		@Override
+		public boolean isFinalState() {
+			return false;
+		}
+	}
+	
+	private static enum SyncFileStatusCallback implements ExecutionCallback {
+		FILE_CHANGE		("onFileChange"),
+		UPLOAD			("onFileUpload"),
+		DOWNLOAD  		("onFileDownload")
+		;
+		
+		//enum attributes
+		private final String methodName;
+		
+		private SyncFileStatusCallback(String methodName) {
+			this.methodName = methodName;
+		}
+
+		@Override
+		public String methodName() {
+			return methodName;
+		}
+
+		@Override
+		public boolean isFinalState() {
+			return false;
+		}
+	}
+	
+	/**
+	 * Defines a particular file's status during sync. 
+	 */
+	public static enum CloudSyncFileStatus implements Serializable {
+		ADDED,
+		REMOVED,
+		MOVED,
+		RENAMED,
+		MODIFIED,
+		UPLOADING,
+		DOWNLOADING
+		;
+		
+		public static CloudSyncFileStatus from(SyncEventType type) {
+			switch (type) {
+			
+			case ADD_FILE:
+			case ADD_FOLDER:
+			case ADD_LINK:
+			case ADD_SHARE:
+			case COPY_FILE:
+				return ADDED;
+			
+			case DELETE_FILE:
+			case DELETE_FOLDER:
+			case DELETE_LINK:
+			case DELETE_SHARE:
+				return REMOVED;
+				
+			case MOVE_FILE:
+			case MOVE_FOLDER:
+			case MOVE_LINK:
+			case MOVE_SHARE:
+				return MOVED;
+				
+			case RENAME_FILE:
+			case RENAME_FOLDER:
+			case RENAME_LINK:
+				return RENAMED;
+				
+			case MODIFY_FILE:
+			case MODIFY_LINK:
+			case MODIFY_SHARE:
+				return MODIFIED;
+				
+			}
+			
+			return null;
+		}
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 * @param info
+	 */
+	void syncStart(final CloudSyncEngine syncEngine) {
+		new ThreadAwareCallback(EngineExecutionCallback.SYNC_START, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class }, 
+					
+				new Runnable() {
+					public void run() {
+						try {
+							onSyncStart(syncEngine);
+						} catch (Exception e) {
+							syncError(syncEngine, e);
+						}
+					}
+				}, 
+				null
+			
+			).run();
+	}
+
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 * @param info
+	 */
+	void syncEnd(final CloudSyncEngine syncEngine, final Map<String, String> info) {
+		new ThreadAwareCallback(EngineExecutionCallback.SYNC_END, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class, Map.class }, 
+					
+				new Runnable() {
+					public void run() {
+						try {
+							onSyncEnd(syncEngine, info);
+						} catch (Exception e) {
+							syncError(syncEngine, e);
+						}
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 * @param error
+	 */
+	void syncError(final CloudSyncEngine syncEngine, final Exception error) {
+		new ThreadAwareCallback(EngineExecutionCallback.SYNC_ERROR, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class, Exception.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onSyncError(syncEngine, error);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 */
+	void start(final CloudSyncEngine syncEngine) {
+		new ThreadAwareCallback(EngineExecutionCallback.START, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onStart(syncEngine);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 */
+	void stop(final CloudSyncEngine syncEngine) {
+		new ThreadAwareCallback(EngineExecutionCallback.STOP, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onStop(syncEngine);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 */
+	void pause(final CloudSyncEngine syncEngine) {
+		new ThreadAwareCallback(EngineExecutionCallback.PAUSE, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onPause(syncEngine);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 */
+	void resume(final CloudSyncEngine syncEngine) {
+		new ThreadAwareCallback(EngineExecutionCallback.RESUME, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onResume(syncEngine);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 */
+	void pushConnect(final CloudSyncEngine syncEngine) {
+		new ThreadAwareCallback(EngineExecutionCallback.PUSH_CONNECT, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onPushConnect(syncEngine);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 */
+	void pushDisconnect(final CloudSyncEngine syncEngine) {
+		new ThreadAwareCallback(EngineExecutionCallback.PUSH_DISCONNECT, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onPushDisconnect(syncEngine);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 * @param error
+	 */
+	void pushError(final CloudSyncEngine syncEngine, final Exception error) {
+		new ThreadAwareCallback(EngineExecutionCallback.PUSH_ERROR, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class, Exception.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onPushError(syncEngine, error);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 */
+	void changesDetected(final CloudSyncEngine syncEngine) {
+		new ThreadAwareCallback(EngineExecutionCallback.CHANGE_DETECTED, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class, CloudSyncFileStatus.class, Map.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onChangeDetected(syncEngine);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 * @param status
+	 * @param info
+	 */
+	void fileChange(final CloudSyncEngine syncEngine, final CloudSyncFileStatus status, final Map<String, String> info) {
+		new ThreadAwareCallback(SyncFileStatusCallback.FILE_CHANGE, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class, CloudSyncFileStatus.class, Map.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onFileChange(syncEngine, status, info);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 * @param fileItem
+	 * @param totalBytesUploaded
+	 * @param uploadedBytesSoFar
+	 * @param totalExpectedBytes
+	 */
+	void fileUpload(final CloudSyncEngine syncEngine, final SyncItem fileItem, final int totalBytesUploaded, final int uploadedBytesSoFar, final int totalExpectedBytes) {
+		new ThreadAwareCallback(SyncFileStatusCallback.UPLOAD, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class, SyncItem.class, int.class, int.class, int.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onFileUpload(syncEngine, fileItem, totalBytesUploaded, uploadedBytesSoFar, totalExpectedBytes);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+	/**
+	 * Package protected callback method used by {@link CloudSyncEngine} to invoke the abstract methods implemented by subclasses with awareness of its threading preference. See {@link ExecutionThread} annotation and uses.
+	 * @param syncEngine
+	 * @param fileItem
+	 * @param totalBytesDownloaded
+	 * @param downloadedBytesSoFar
+	 * @param totalExpectedBytes
+	 */
+	void fileDownload(final CloudSyncEngine syncEngine, final SyncItem fileItem, final int totalBytesDownloaded, final int downloadedBytesSoFar, final int totalExpectedBytes) {
+		new ThreadAwareCallback(SyncFileStatusCallback.DOWNLOAD, listenerType, 
+
+				//expected callback parameter types
+				new Class<?>[] { CloudSyncEngine.class, SyncItem.class, int.class, int.class, int.class }, 
+					
+				new Runnable() {
+					public void run() {
+						onFileDownload(syncEngine, fileItem, totalBytesDownloaded, downloadedBytesSoFar, totalExpectedBytes);
+					}
+				}, 
+				null
+			
+			).run();
+	}
+	
+}

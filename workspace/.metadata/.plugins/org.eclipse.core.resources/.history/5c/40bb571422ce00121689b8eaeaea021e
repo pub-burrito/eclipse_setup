@@ -1,0 +1,43 @@
+package com.cloud.test.sdk.integration;
+
+import android.test.ActivityInstrumentationTestCase2;
+import cucumber.api.android.RunWithCucumber;
+import cucumber.api.java.After;
+import cucumber.api.java.Before;
+import cucumber.api.java.en.Given;
+import cucumber.api.java.en.Then;
+import cucumber.api.java.en.When;
+
+@RunWithCucumber(features="features/1Off_add_operations.feature")
+public class AddOperations extends ActivityInstrumentationTestCase2<CucumberActivity> {
+    private int mSteps;
+
+    public AddOperations() {
+        super(CucumberActivity.class);
+    }
+
+    @Given("^I have a Syncbox$")
+    public void I_have_a_Syncbox() {
+        
+    }
+    
+    @Given("^I Add the Files \"([^\"]*)\"$")
+    public void I_Add_the_Files(String filenames){
+    	
+    }
+
+    @Then("^The File \"([^\"]*)\" Should Exist In The Syncbox$")
+    public void The_File_Should_Exist_In_The_Syncbox(String filename){
+    	
+    }
+    
+    @Given("^I Add the File \"([^\"]*)\"$")
+    public void I_Add_the_File(String filenames){
+    	
+    }
+
+    @Then("^I succeed$")
+    public void I_succeed() {
+        assertEquals(3, ++mSteps);
+    }
+}

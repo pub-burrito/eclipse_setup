@@ -1,0 +1,547 @@
+package com.cloud.framework.service.process.sync;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import roboguice.util.Ln;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+
+import com.cloud.framework.config.CloudApplication;
+import com.cloud.framework.data.model.sync.FileSystemItem;
+import com.cloud.framework.net.CloudDownloadRequest;
+import com.cloud.framework.service.model.sync.SyncBox;
+import com.cloud.framework.service.model.sync.index.CloudSyncIndex;
+import com.cloud.framework.service.model.sync.index.CloudSyncIndexProvider;
+import com.cloud.framework.service.process.core.CloudNetworkMonitoringService;
+import com.cloud.framework.service.process.sync.CloudSyncEngineListener.CloudSyncFileStatus;
+import com.cloud.framework.service.process.sync.CloudSyncService.SyncServiceManager;
+import com.google.inject.Inject;
+
+/**
+ * <!--
+ * CloudSyncEngine.java
+ * -->
+ * Encapsulates all SDK operations exposed to users through a simplified interface.
+ * 
+ * This class is intended to be used either for Active or On-demand Sync (operations that involve having access to the Cloud Online Services). 
+ * For off-line operations such as retrieving content from the index and queueing operations for later sync, see other classes in the SDK package.
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date Feb 18, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+public class CloudSyncEngine {
+
+	/*
+	 * These are action constants for Intents broadcasted by the engine under the CloudSyncContext to notify listeners of internal state changes 
+	 */
+	public static final String CATEGORY_ENGINE = CloudSyncEngine.class.getName() + ".categories.ENGINE";
+	public static final String CATEGORY_SYNC = CloudSyncEngine.class.getName() + ".categories.SYNC";
+	public static final String CATEGORY_PUSH = CloudSyncEngine.class.getName() + ".categories.PUSH";
+	
+	public static final String ACTION_START = CloudSyncEngine.class.getName() + ".actions.START";
+	public static final String ACTION_STOP = CloudSyncEngine.class.getName() + ".actions.STOP";
+	public static final String ACTION_PAUSE = CloudSyncEngine.class.getName() + ".actions.PAUSE";
+	public static final String ACTION_RESUME = CloudSyncEngine.class.getName() + ".actions.RESUME";
+	
+	public static final String ACTION_SYNC_START = CloudSyncEngine.class.getName() + ".actions.SYNC_START";
+	public static final String ACTION_SYNC_END 	 = CloudSyncEngine.class.getName() + ".actions.SYNC_END";
+	public static final String ACTION_SYNC_ERROR = CloudSyncEngine.class.getName() + ".actions.SYNC_ERROR";
+	
+	public static final String ACTION_SYNC_PUSH_NOTIFICATION = CloudSyncEngine.class.getName() + ".actions.SYNC_PUSH_NOTIFICATION";
+	public static final String ACTION_SYNC_PUSH_CONNECT = CloudSyncEngine.class.getName() + ".actions.SYNC_PUSH_CONNECT";
+	public static final String ACTION_SYNC_PUSH_DISCONNECT = CloudSyncEngine.class.getName() + ".actions.SYNC_PUSH_DISCONNECT";
+	public static final String ACTION_SYNC_PUSH_ERROR = CloudSyncEngine.class.getName() + ".actions.SYNC_PUSH_ERROR";
+
+	//Controls instances of engines per SyncBox
+	private static final Map<SyncBox, CloudSyncEngine> _instances = Collections.synchronizedMap(new LinkedHashMap<SyncBox, CloudSyncEngine>());
+	
+	private final CloudSyncContext syncContext;
+	
+	@Inject private CloudSyncIndexProvider indexProvider;
+	private CloudSyncIndex index;
+	
+	private CloudSyncService syncService;
+	
+	private CloudSyncEngineListener listener;
+	
+	//Engine state
+	public static enum SyncEngineState {
+		STARTED,
+		STOPPED,
+		PAUSED
+	}
+	
+	private SyncEngineState state;
+	
+	private CloudSyncEngine(Context appContext, SyncBox syncBox) {
+		syncContext = CloudSyncContext.getInstance(appContext, syncBox);
+	}
+	
+	/**
+	 * Initializes a Sync Engine instance for a particular SyncBox context.
+	 * 
+	 * @param appContext
+	 * @param syncBox
+	 * @return
+	 */
+	public static CloudSyncEngine init(Context appContext, SyncBox syncBox) {
+		if (_instances.containsKey(syncBox)) {
+			return _instances.get(syncBox);
+		}
+		
+		CloudSyncEngine engine = new CloudSyncEngine(appContext, syncBox);
+		_instances.put(syncBox, engine);
+		
+		CloudApplication.init(engine.syncContext);
+		
+		engine.syncContext.inject(engine);
+		
+		engine.initIndex();
+		CloudDownloadRequest.initCache();
+		
+		return engine;
+	}
+	
+	public CloudSyncEngine listen(CloudSyncEngineListener listener) {
+		this.listener = listener;
+		
+		return this;
+	}
+	
+	public CloudSyncContext getSyncContext() {
+		return syncContext;
+	}
+	
+	private void initIndex() {
+		index = indexProvider.get(syncContext);
+		if (index.rootItem() == null) {
+			index.addRoot();
+		}
+	}
+	
+	//TODO: https://www.pivotaltracker.com/story/show/50756007
+	public CloudSyncIndex getSyncIndex() {
+		return index;
+	}
+	
+	public SyncEngineState state() {
+		return state;
+	}
+	
+	/**
+	 * Provides shortcut to check if state of Engine is {@link SyncEngineState#STARTED}.
+	 * @return
+	 */
+	private boolean started() {
+		return state == SyncEngineState.STARTED;
+	}
+	
+	/**
+	 * Provides shortcut to check if state of Engine is {@link SyncEngineState#PAUSED}.
+	 * @return
+	 */
+	private boolean paused() {
+		return state == SyncEngineState.PAUSED;
+	}
+	
+	/**
+	 * Provides shortcut to check if state of Engine is {@link SyncEngineState#STOPPED}.
+	 * @return
+	 */
+	private boolean stopped() {
+		return state == SyncEngineState.STOPPED;
+	}
+	
+	/**
+	 * Starts engine and all related services for the SyncBox associated with this engine instance.
+	 * @return
+	 */
+	public CloudSyncEngine `() {
+		if (started()) {
+			return this;
+		}
+		
+		Ln.i("Starting...");
+		
+		startServices();
+		
+		state = SyncEngineState.STARTED;
+		
+		broadcastStart();
+		
+		return this;
+	}
+	
+	/**
+	 * Starts all Core and Sync Services.
+	 */
+	private void startServices() {
+		//Instantiate services (Push, Sync, Network Monitoring) and keep reference
+		CloudApplication.startService(CloudNetworkMonitoringService.class);
+		CloudApplication.startService(syncContext, CloudSyncNotificationService.class);
+		CloudApplication.startService(syncContext, CloudSyncService.class);
+
+		//notifying receivers that sync has just been started/kicked off
+		//TODO: https://www.pivotaltracker.com/story/show/50755883
+		//broadcastSyncStart();
+
+		//Bind broadcast receiver for network reachability changes
+		syncContext.getApplicationContext().registerReceiver(
+			networkMonitoringReceiver,
+			new IntentFilter(CloudNetworkMonitoringService.ACTION_NOTIFY)
+		);
+
+		//Bind broadcast receiver for sync event notifications - automatically filters broadcasts by syncBox via syncContext
+		syncContext.registerReceiver(
+			syncNotificationReceiver, 
+			new IntentFilter(CloudSyncNotificationService.ACTION_NOTIFY)
+		); 
+		
+		//Bind broadcast receiver for sync state - automatically filters broadcasts by syncBox via syncContext
+		syncContext.registerReceiver(
+			syncServiceReceiver, 
+			new IntentFilter() {
+				{
+					addAction(CloudSyncService.ACTION_SYNC_START);
+					addAction(CloudSyncService.ACTION_SYNC_ERROR);
+					addAction(CloudSyncService.ACTION_SYNC_END);
+					addAction(CloudSyncService.ACTION_SYNC_FILE_STATUS_CHANGE);
+					addAction(CloudSyncService.ACTION_SYNC_FILE_DOWNLOAD);
+					addAction(CloudSyncService.ACTION_SYNC_FILE_UPLOAD);
+					addAction(CloudSyncService.ACTION_SYNC_FILES_UPLOAD);
+					addCategory(CloudSyncService.CATEGORY_SYNC);
+				}
+			}
+		); 
+
+		//Bind a service connection to the service instance and link it with the current Sync Context
+		syncContext.bindService(new Intent(syncContext, CloudSyncService.class), syncServiceConnection, 0);
+	}
+	
+	/**
+	 * Starts only Sync Notification Services.
+	 */
+	public void startNotificationServices() {
+		if (started()) {
+			return;
+		}
+		
+		CloudApplication.startService(syncContext, CloudSyncNotificationService.class);
+
+		//Bind broadcast receiver for sync event notifications - automatically filters broadcasts by syncBox via syncContext
+		syncContext.registerReceiver(
+			syncNotificationReceiver, 
+			new IntentFilter(CloudSyncNotificationService.ACTION_NOTIFY)
+		); 
+		
+		state = SyncEngineState.STARTED;
+	}
+
+	/**
+	 * Handles notifications sent down by {@link CloudNetworkMonitoringService} whenever connectivity state changes so the engine can handle it appropriately.
+	 * 
+	 * This is only called if this engine registered the receiver against the service.
+	 */
+	private final BroadcastReceiver networkMonitoringReceiver = new BroadcastReceiver() {
+		
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Ln.i("< networkMonitoringReceiver.received: %s", intent);
+			
+			boolean isReachable = intent.getBooleanExtra(CloudNetworkMonitoringService.EXTRA_REACHABLE, true);
+			if (!isReachable) { //no connection
+				pause();
+				
+				broadcastPause();
+				
+			} else if (paused()){
+				start();
+				
+				broadcastResume();
+			}
+		}
+	}; 
+	
+	/**
+	 * Handles notifications sent down by {@link CloudSyncNotificationService} whenever a push notification is received indicating a new Sync Event is available to be pulled.
+	 */
+	private final BroadcastReceiver syncNotificationReceiver = new BroadcastReceiver() {
+		
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Ln.i("< syncNotificationReceiver.received: %s", intent);
+			
+			String action = intent.getAction();
+			
+			if (action.equals(CloudSyncNotificationService.ACTION_NOTIFY)) {
+				if (started() && syncService != null) {
+					syncService.syncFrom(syncContext.syncBox);
+				} else {
+					Ln.w("Could not perform sync after having received notification, Engine is not STARTED. Perhaps a connectivity notification PAUSED it or running in On-Demand mode.");
+				}
+				
+				broadcastSyncNotification();
+				
+			} else if (action.equals(CloudSyncNotificationService.ACTION_CONNECT)) {
+				broadcastSyncNotificationConnect();
+				
+			} else if (action.equals(CloudSyncNotificationService.ACTION_DISCONNECT)) {
+				broadcastSyncNotificationDisconnect();
+				
+			} else if (action.equals(CloudSyncNotificationService.ACTION_ERROR)) {
+				broadcastSyncNotificationError(
+					(Exception) intent.getSerializableExtra(CloudSyncNotificationService.EXTRA_ERROR)
+				);
+				
+			}
+		}
+	}; 
+	
+	/**
+	 * Handles connecting to the instance of {@link CloudSyncService} so direct commands can be invoked on it (ie: asynchronous REST API operations)
+	 */
+	private final ServiceConnection syncServiceConnection = new ServiceConnection() {
+		
+		@Override
+		public void onServiceDisconnected(ComponentName name) {
+			Ln.i("Disconnected from service: %s", name);
+			
+			syncService = null;
+		}
+		
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder binder) {
+			Ln.i("Connected to service: %s - Binder: %s", name, binder);
+			
+			syncService = ((SyncServiceManager) binder).service;
+		}
+	};
+	
+	/**
+	 * Handles notifications sent down by {@link CloudSyncService} whenever sync state changes so the engine can handle it appropriately.
+	 * 
+	 * This is only called if this engine registered the receiver against the service.
+	 */
+	private final BroadcastReceiver syncServiceReceiver = new BroadcastReceiver() {
+		
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Ln.v("< syncServiceReceiver.received: %s", intent);
+			
+			if (CloudSyncService.ACTION_SYNC_START.equals(intent.getAction())) {
+				broadcastSyncStart();
+				
+			} else if (CloudSyncService.ACTION_SYNC_END.equals(intent.getAction())) {
+				broadcastSyncEnd();
+				
+			} else if (CloudSyncService.ACTION_SYNC_ERROR.equals(intent.getAction())) {
+				broadcastSyncError(
+					(Exception) intent.getSerializableExtra(CloudSyncService.EXTRA_ERROR)
+				);
+				
+			} else if (CloudSyncService.ACTION_SYNC_FILE_STATUS_CHANGE.equals(intent.getAction())) {
+				broadcastFileStatusChange(
+					(CloudSyncFileStatus) intent.getSerializableExtra(CloudSyncService.EXTRA_FILE_STATUS), 
+					intent.getStringExtra(CloudSyncService.EXTRA_FILE_PATH)
+				);
+				
+			//TODO: https://www.pivotaltracker.com/story/show/50755771
+				/*
+				CloudSyncService.ACTION_SYNC_FILE_UPLOAD
+				CloudSyncService.ACTION_SYNC_FILE_DOWNLOAD
+				CloudSyncService.ACTION_SYNC_FILES_UPLOAD
+				 */
+			}
+		}
+	}; 
+	
+	public static void stopAllInstances() {
+		for (CloudSyncEngine engine : _instances.values()) {
+			try {
+				engine.stop();
+			} catch (Throwable e) {
+				Ln.e(e, "Can't stop instance: %s", engine);
+			}
+		}
+	}
+	
+	public CloudSyncEngine pause() {
+		if (!started()) {
+			return this;
+		}
+		
+		Ln.i("Pausing...");
+		
+		//leaves Network Monitoring running on purpose so that as soon as connectivity is restablished the services can be restarted 
+		stopSyncServices();
+		
+		state = SyncEngineState.PAUSED;
+		
+		try {
+			syncContext.unregisterReceiver(syncNotificationReceiver);
+		} catch (IllegalArgumentException e) {}
+		
+		syncContext.unbindService(syncServiceConnection);
+		
+		return this;
+	}
+	
+	public CloudSyncEngine stop() {
+		if (stopped()) {
+			return this;
+		}
+		
+		Ln.i("Stopping...");
+		
+		stopServices();
+		
+		state = SyncEngineState.STOPPED;
+		
+		broadcastStop();
+
+		try {
+			syncContext.getApplicationContext()
+					   .unregisterReceiver(networkMonitoringReceiver);
+		} catch (IllegalArgumentException e) {}
+		
+		try {
+			syncContext.unregisterReceiver(syncNotificationReceiver);
+		} catch (IllegalArgumentException e) {}
+		
+		syncContext.unbindService(syncServiceConnection);
+		
+		return this;
+	}
+
+	/**
+	 * Stops all Core and Sync Services.
+	 */
+	private void stopServices() {
+		CloudApplication.stopService(CloudNetworkMonitoringService.class);  
+		stopSyncServices();
+	}
+
+	/**
+	 * Stops only Sync Services.
+	 */
+	private void stopSyncServices() {
+		CloudApplication.stopService(syncContext, CloudSyncNotificationService.class); 
+		CloudApplication.stopService(syncContext, CloudSyncService.class);
+	}
+	
+	/*
+	 * Broadcast/Listener callback shortcut methods
+	 */
+	private void broadcastSyncStart() {
+		syncContext.sendBroadcast(new Intent(ACTION_SYNC_START).addCategory(CATEGORY_SYNC));
+		
+		if (listener != null) {
+			listener.syncStart(this);
+		}
+	}
+	
+	private void broadcastSyncEnd() {
+		syncContext.sendBroadcast(new Intent(ACTION_SYNC_END).addCategory(CATEGORY_SYNC));
+		
+		if (listener != null) {
+			LinkedHashMap<String, String> info = new LinkedHashMap<String, String>();
+			//ONEDAY: https://www.pivotaltracker.com/story/show/50756217
+			
+			listener.syncEnd(this, info);
+		}
+	}
+	
+	private void broadcastSyncError(Exception error) {
+		syncContext.sendBroadcast(new Intent(ACTION_SYNC_ERROR).addCategory(CATEGORY_SYNC));
+		
+		if (listener != null) {
+			listener.syncError(this, error);
+		}
+	}
+	
+	private void broadcastSyncNotification() {
+		syncContext.sendBroadcast(new Intent(ACTION_SYNC_PUSH_NOTIFICATION).addCategory(CATEGORY_PUSH));
+		
+		if (listener != null) {
+			listener.changesDetected(this);
+		}
+	}
+	
+	private void broadcastSyncNotificationConnect() {
+		syncContext.sendBroadcast(new Intent(ACTION_SYNC_PUSH_CONNECT).addCategory(CATEGORY_PUSH));
+		
+		if (listener != null) {
+			listener.pushConnect(this);
+		}
+	}
+	
+	private void broadcastSyncNotificationDisconnect() {
+		syncContext.sendBroadcast(new Intent(ACTION_SYNC_PUSH_DISCONNECT).addCategory(CATEGORY_PUSH));
+		
+		if (listener != null) {
+			listener.pushDisconnect(this);
+		}
+	}
+	
+	private void broadcastSyncNotificationError(Exception error) {
+		syncContext.sendBroadcast(new Intent(ACTION_SYNC_PUSH_ERROR).addCategory(CATEGORY_PUSH));
+		
+		if (listener != null) {
+			listener.pushError(this, error);
+		}
+	}
+	
+	private void broadcastStart() {
+		syncContext.sendBroadcast(new Intent(ACTION_START).addCategory(CATEGORY_ENGINE));
+		
+		if (listener != null) {
+			listener.start(this);
+		}
+	}
+	
+	private void broadcastStop() {
+		syncContext.sendBroadcast(new Intent(ACTION_STOP).addCategory(CATEGORY_ENGINE));
+		
+		if (listener != null) {
+			listener.stop(this);
+		}
+	}
+	
+	private void broadcastPause() {
+		syncContext.sendBroadcast(new Intent(ACTION_PAUSE).addCategory(CATEGORY_ENGINE));
+		
+		if (listener != null) {
+			listener.pause(this);
+		}
+	}
+
+	private void broadcastResume() {
+		syncContext.sendBroadcast(new Intent(ACTION_RESUME).addCategory(CATEGORY_ENGINE));
+		
+		if (listener != null) {
+			listener.resume(this);
+		}
+	}
+	
+	private void broadcastFileStatusChange(CloudSyncFileStatus status, String filePath) {
+		if (listener != null) {
+			LinkedHashMap<String, String> info = new LinkedHashMap<String, String>();
+			info.put("filePath", filePath);
+			
+			listener.fileChange(this, status, info);
+		}
+	}
+	
+	public FileSystemItem root() {
+		return index.rootItem();
+	}
+}

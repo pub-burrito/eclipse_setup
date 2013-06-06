@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;RunCukesTest.java&apos; to &apos;CloudSDK-TestSuite/src/test/java/com.cloud.test.sdk.cucumber.tests&apos;&#x0A;- Original project: &apos;java-calculator&apos;&#x0A;- Destination element: &apos;CloudSDK-TestSuite/src/test/java/com.cloud.test.sdk.cucumber.tests&apos;&#x0A;- Original element: &apos;cucumber.examples.java.calculator.RunCukesTest.java&apos;" description="Copy compilation unit" destination="=CloudSDK-TestSuite/src\/test\/java&lt;com.cloud.test.sdk.cucumber.tests" element1="/src\/test\/java&lt;cucumber.examples.java.calculator{RunCukesTest.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1370025089524" units="1" version="1.0"/>
+</session>

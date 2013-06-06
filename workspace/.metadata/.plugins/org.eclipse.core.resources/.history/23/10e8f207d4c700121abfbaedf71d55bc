@@ -1,0 +1,148 @@
+package com.cloud.sdk.service.sync;
+
+import java.io.Serializable;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import com.cloud.framework.service.model.sync.SyncPlan;
+import com.cloud.sdk.service.auth.CloudCredentials;
+import com.cloud.sdk.threading.CloudCall;
+import com.cloud.sdk.threading.CloudCall.CloudServiceRequestCall;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+/**
+ * <!--
+ * CloudStoragePlan.java
+ * -->
+ * This class represents the different plans a developer may configure for usage with the Sync services, each with its limitations and settings.
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date May 13, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+public class CloudStoragePlan implements Serializable {
+
+	private SyncPlan plan;
+	
+	private CloudStoragePlan(SyncPlan plan) {
+		this.plan = plan;
+	}
+	
+	//[start] Properties accessors
+	
+	/**
+	 * Gets the name of the CoudStoragePlan
+	 * @return Plan name
+	 */
+	public String name() {
+		return plan.name;
+	}
+	
+	/**
+	 * Gets the id of the CloudStorePlan
+	 * @return Plan ID, numeric identifier for this plan
+	 */
+	public long id() {
+		return plan.id;
+	}
+	
+	/**
+	 * Gets the total storage limit in Bytes
+	 * @return Total storage limit in Bytes
+	 */
+	public long storageQuota() {
+		return plan.storageSizeBytes;
+	}
+	
+	/**
+	 * Gets the maximum transfer rate in bytes
+	 * @return Maximum transfer rate in bytes
+	 */
+	public long bandwidthQuota() {
+		return plan.maxTransferBytes;
+	}
+	
+	/**
+	 * Gets the flag that determines if this plans should be used by default for new CloudSyncboxes.
+	 * @return Flag that determines if this plans should be used by default for new CloudSyncboxes.
+	 */
+	public boolean isDefault() {
+		return plan.isDefault;
+	}
+	
+	//[end]
+	
+	//[start] Action methods
+	
+	/**
+	 * Retrieves the default storage plan for the current application. Uses pre-configured application credentials by default, override it by calling {@link CloudCall#credentials(CloudCredentials)}. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public static CloudCall<CloudStoragePlan>
+		defaultPlan() 
+	{
+		return 
+			new CloudServiceRequestCall<SyncPlan, CloudStoragePlan>(
+				SyncPlan.getDefault()
+			) 
+			{
+				protected CloudStoragePlan transform(SyncPlan syncPlan) {
+					return CloudStoragePlan.transform(syncPlan);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves available storage plans for the application.
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public static CloudCall<List<CloudStoragePlan>>
+		list() 
+	{
+		return 
+			new CloudServiceRequestCall<List<SyncPlan>, List<CloudStoragePlan>>(
+				SyncPlan.list()
+			) 
+			{
+				protected List<CloudStoragePlan> transform(List<SyncPlan> plans) {
+					return transformList(plans);
+				}
+			};
+	}
+	
+	//[end]
+	
+	//[start] Transformation methods
+	
+	private static CloudStoragePlan transform(final SyncPlan syncPlan) {
+		return 
+			syncPlan == null ?
+				null :
+				new CloudStoragePlan(syncPlan);
+	}
+	
+	private static List<CloudStoragePlan> transformList(List<SyncPlan> plans) {
+		return 
+			Lists.transform(
+				plans,
+				
+				new Function<SyncPlan, CloudStoragePlan>() {
+					
+					@Override @Nullable
+					public CloudStoragePlan apply(@Nullable SyncPlan plan) {
+						return transform(plan);
+					}
+				}
+			);
+	}
+	
+	//[end]
+
+	private static final long serialVersionUID = 7261559142492772750L;
+
+}

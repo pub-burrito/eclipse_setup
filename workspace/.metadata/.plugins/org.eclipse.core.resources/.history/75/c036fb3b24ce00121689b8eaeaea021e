@@ -1,0 +1,18 @@
+package com.cloud.test.sdk.integration;
+
+import android.content.Context;
+
+import com.cloud.sdk.Cloud;
+
+public class CloudValues {
+
+	private static CloudValues mInstance;
+	
+	private CloudValues(Context context){
+		Cloud.init(context);
+	}
+	
+	public static CloudValues instnace(Context context){
+		return mInstance == null ? mInstance = new CloudValues(context) : mInstance;
+	}
+}

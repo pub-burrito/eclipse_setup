@@ -1,0 +1,264 @@
+package com.cloud.samples.sdk.android.sync.ondemand;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import roboguice.util.Ln;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import com.cloud.framework.threading.AsyncRunnable.ExecutionThread;
+import com.cloud.framework.threading.AsyncRunnable.ThreadContext;
+import com.cloud.sdk.service.sync.CloudFileItem;
+import com.cloud.sdk.service.sync.CloudSyncbox;
+import com.cloud.sdk.service.sync.CloudSyncboxOnDemandStatusListener;
+import com.cloud.sdk.threading.CloudCall.CloudProgressStatus;
+import com.cloud.sdk.threading.CloudCallHandler;
+
+public class CloudFileItemActivity extends Activity implements OnItemClickListener{
+
+	ListView listView;
+	CustomAdapter<CloudFileItem> adapter;
+	CloudFileItem currentFileFolder;
+	CloudSyncbox syncbox;
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		listView = (ListView)findViewById(R.id.container);
+		
+		/*
+		 * Deserialize CloudFileItem and CloudSyncbox
+		 */
+		currentFileFolder = (CloudFileItem) getIntent().getSerializableExtra("item");
+		syncbox = (CloudSyncbox) getIntent().getSerializableExtra("syncbox");
+		getActionBar().setTitle("Syncbox :" + syncbox.id());
+	}
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+		getItemsInsideFolder();
+		setProgressBarIndeterminateVisibility(true);
+		
+		/*
+		 * Set a listener that connects the CloudSyncbox to the Sky
+		 * and listens for any changes that have happened to it
+		 */
+		syncbox
+			.listen(new CloudSyncboxOnDemandStatusListener() {
+			
+				@Override
+				public void onChangeDetected(CloudSyncbox syncbox) {
+					/*
+					 * New CloudFileItems have been added to the CloudSyncbox
+					 */
+					
+					/*
+					 * Get all the CloudFileItems in a CloudSyncbox for a specific path
+					 */
+					getItemsInsideFolder();
+				}
+				
+				@Override
+				@ExecutionThread(ThreadContext.UI)
+				public void onConnected(CloudSyncbox syncbox) {
+					/*
+					 * CloudSyncbox has connected to the Sky
+					 */
+					super.onConnected(syncbox);
+					Toast.makeText(CloudFileItemActivity.this, "Syncbox connected to sky", Toast.LENGTH_SHORT).show();
+				}
+
+		});
+	}
+	
+	private void getItemsInsideFolder(){
+		/*
+		 * Get every CloudFileItem that exist in a folder
+		 */
+		currentFileFolder
+			.children()
+			.handle(new CloudCallHandler<List<CloudFileItem>>() {
+			
+				@Override
+				@ExecutionThread(ThreadContext.UI)
+				public void onSuccess(List<CloudFileItem> fileItem) throws Exception {
+					adapter = new CustomAdapter<CloudFileItem>(CloudFileItemActivity.this, new ArrayList<CloudFileItem>(fileItem));
+					listView.setAdapter(adapter);
+					listView.setOnItemClickListener(CloudFileItemActivity.this);
+					
+					setProgressBarIndeterminateVisibility(false);
+				}
+				
+				@Override
+				public void onError(Exception error) {
+					Toast.makeText(CloudFileItemActivity.this, "Failure. Could not access CloudFileItems inside folder", Toast.LENGTH_SHORT).show();
+				}
+			});
+	}
+	
+	@Override
+	protected void onPause() {
+		super.onPause();
+		adapter.clear();
+		adapter.notifyDataSetChanged();
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.menu, menu);
+		return true;
+	}
+	
+	@Override
+	public boolean onMenuItemSelected(int featureId, MenuItem item) {		
+		switch (item.getItemId()) {
+		case R.id.add:
+
+			AlertDialog.Builder alert = new AlertDialog.Builder(this);
+			alert.setPositiveButton("Add Folder", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) {
+					addTempFolder();
+				}
+			});
+			alert.setNeutralButton("Add File", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) {
+					try {
+						addTempFile();
+					} catch (Exception e) {
+						Ln.e(e);
+					}
+				}
+			});
+			alert.setNegativeButton("Cancel", null);
+			alert.setTitle("Add Item");
+			alert.setMessage("Please select an option below");
+			alert.create().show();
+			break;
+		}
+		return super.onMenuItemSelected(featureId, item);
+	}
+
+	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+		CloudFileItem item = ((CloudFileItem)parent.getItemAtPosition(position));
+		
+		/*
+		 * Check if CloudFileItem is a folder
+		 */
+		if(item.isFolder()){
+			Intent intent = new Intent(CloudFileItemActivity.this, CloudFileItemActivity.class);
+			intent.putExtra("path", item.path());
+			startActivity(intent);
+		}else{
+			downloadFile(item);
+		}
+		
+	}
+	
+	private void addTempFolder(){
+		/*
+		 * Add a folder to a CloudSyncbox for a particular path
+		 * 
+		 * The path includes the folder name
+		 * 		i.e .addFolder("/path/to/folder/tempFolder");
+		 */
+		currentFileFolder
+			.syncbox()
+			.addFolder(currentFileFolder.path() + "Folder_" + new Random().nextInt(9999))
+			.handle(new CloudCallHandler<CloudFileItem>() {
+
+				@Override
+				public void onError(Exception error) {
+					Ln.e(error);
+				}
+
+				@Override
+				@ExecutionThread(ThreadContext.UI)
+				public void onSuccess(CloudFileItem fileItem) throws Exception {
+					adapter.add(fileItem);
+					adapter.notifyDataSetChanged();
+				}
+			});
+	}
+	
+	private void addTempFile() throws Exception{
+		File outputDir = CloudFileItemActivity.this.getCacheDir();
+		File outputFile = File.createTempFile("temp" + new Random().nextInt(9999), ".txt", outputDir);
+		
+		/*
+		 * Add a file to a CloudSyncbox for a specific path
+		 * 
+		 * The path DOES NOT include the file name
+		 * 		i.e .addFile("/path/to/file/","temp.txt");
+		 */
+		currentFileFolder
+			.syncbox()
+			.addFile(outputFile.getAbsolutePath(), currentFileFolder.path())
+			.handle(new CloudCallHandler<CloudFileItem>() {
+
+				@Override
+				public void onError(Exception error) {
+					Ln.e(error);
+				}
+
+				@Override
+				@ExecutionThread(ThreadContext.UI)
+				public void onSuccess(CloudFileItem fileItem) throws Exception {
+					adapter.add(fileItem);	
+					adapter.notifyDataSetChanged();
+				}
+			});
+		
+	}
+	
+	private void downloadFile(CloudFileItem fileItem){
+		/*
+		 * Download a CloudFileItem
+		 * 
+		 * Passing null will download the CloudFileItem into a predefined location.
+		 * Pass a path to store it elsewhere.
+		 */
+		setProgressBarIndeterminateVisibility(true);
+		
+		fileItem
+			.download(null)
+			.handle(new CloudCallHandler<File>() {
+
+				@Override
+				public void onError(Exception error) {
+					Ln.e(error);
+				}
+
+				@Override
+				@ExecutionThread(ThreadContext.UI)
+				public void onSuccess(File cloudFile) throws Exception {
+					setProgressBarIndeterminateVisibility(false);
+					Toast.makeText(CloudFileItemActivity.this, "File Downloaded", Toast.LENGTH_SHORT).show();	
+				}
+				
+				@Override
+				public void onStatus(CloudProgressStatus<File> status) {
+					super.onStatus(status);
+					//handle status callbacks from download process
+					Ln.i("Total Completetion : %s", status.completedBytes() / status.totalBytes() * 100);
+				}
+			});
+	}
+	
+}

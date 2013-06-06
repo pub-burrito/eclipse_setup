@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.cloud.sdk.android</groupId>
+	<artifactId>CloudSDK-TestApp</artifactId>
+	<packaging>apk</packaging>
+
+	<!-- Kept aligned with Cloud SDK version -->
+	<version>0.2.9-SNAPSHOT</version>
+
+	<inceptionYear>2013</inceptionYear>
+
+	<organization>
+		<name>Cloud.com</name>
+		<url>http://cloud.com</url>
+	</organization>
+
+	<developers>
+		<developer>
+			<id>robertoandrade</id>
+			<name>Roberto Andrade</name>
+			<email>roberto@cloud.com</email>
+		</developer>
+		<developer>
+          <id>stevenberlanga</id>
+          <name>Steven Berlanga</name>
+          <email>steven.berlanga@cloud.com</email>
+        </developer>
+	</developers>
+
+	<scm>
+		<developerConnection>scm:git:ssh://git@github.com/CloudCom/CloudSDK-TestApp-Android.git</developerConnection>
+		<url>http://github.com/CloudCom/CloudSDK-TestApp-Android</url>
+	</scm>
+
+	<issueManagement>
+		<system>CloudZilla</system>
+		<url>http://developer.cloudstaging.us/support</url>
+	</issueManagement>
+
+	<distributionManagement>
+	  <repository>
+	    <id>cloud.archiva.internal</id>
+	    <url>http://cloud.local:8180/archiva/repository/internal/</url>
+	  </repository>
+	  <snapshotRepository>
+	    <id>cloud.archiva.snapshots</id>
+	    <url>http://cloud.local:8180/archiva/repository/snapshots/</url>
+	  </snapshotRepository>
+    </distributionManagement>
+  
+	<repositories>
+		<repository>
+			<id>cloud.archiva.internal</id>
+			<url>http://cloud.local:8180/archiva/repository/internal/</url>
+		</repository>
+		<repository>
+			<id>cloud.archiva.snapshots</id>
+			<url>http://cloud.local:8180/archiva/repository/snapshots/</url>
+		</repository>
+	</repositories>
+	
+	<pluginRepositories>
+	  <pluginRepository>
+          <id>oss.sonatype.org-jayway-releases</id>
+          <name>Jayway OpenSource RELEASEs on Sonatype.org</name>
+          <url>http://oss.sonatype.org/content/repositories/jayway-releases/</url>
+      </pluginRepository>
+      <pluginRepository>
+          <id>oss.sonatype.org-jayway-snapshots</id>
+          <name>Jayway OpenSource SNAPSHOTs on Sonatype.org</name>
+          <url>http://oss.sonatype.org/content/repositories/jayway-snapshots/</url>
+          <snapshots>
+              <enabled>true</enabled>
+          </snapshots>
+      </pluginRepository>
+  </pluginRepositories>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>com.cloud.sdk.android</groupId>
+			<artifactId>CloudSDK</artifactId>
+			<version>0.2.9-SNAPSHOT</version>
+			<type>apklib</type>
+		</dependency>
+
+		<dependency>
+	      <groupId>com.google.android</groupId>
+	      <artifactId>android</artifactId>
+	      <version>4.1.1.4</version>
+	      <scope>provided</scope>
+	    </dependency>
+	    
+		<dependency>
+      	  <groupId>com.google.android</groupId>
+	      <artifactId>android-test</artifactId>
+	      <version>4.1.1.4</version>
+	      <scope>provided</scope>
+	    </dependency>
+		
+		<dependency>
+	      <groupId>info.cukes</groupId>
+	      <artifactId>cucumber-android</artifactId>
+	      <version>1.1.4-SNAPSHOT</version>
+	      <scope>provided</scope>
+	      <type>jar</type>
+	    </dependency>
+    
+	    <dependency>
+	        <groupId>info.cukes</groupId>
+	        <artifactId>cucumber-junit</artifactId>
+	        <version>1.1.4-SNAPSHOT</version>
+	        <scope>compile</scope>
+	    </dependency>
+	    
+	    <dependency>
+	       <groupId>info.cukes</groupId>
+	       <artifactId>cucumber-java</artifactId>
+	       <version>1.1.4-SNAPSHOT</version>
+	       <scope>compile</scope>
+	    </dependency>
+	    
+	    <dependency>
+	       <groupId>info.cukes</groupId>
+	       <artifactId>cucumber-core</artifactId>
+	       <version>1.1.4-SNAPSHOT</version>
+	       <scope>compile</scope>
+	    </dependency>
+	    		
+	</dependencies>
+	
+	
+	<profiles>
+	  	<profile>
+	  	    <id>uninstrumented</id>
+	  	    <activation>
+	  	        <property>
+	  	            <name>profile</name>
+	  	            <value>uninstrumented</value>
+	  	        </property>
+	  	    </activation>
+	  	    
+	  	    <!-- disabling Android builder to make building/testing faster (as no instrumentation is required) -->
+	  	    <!-- Phases at: https://github.com/jayway/maven-android-plugin/blob/master/src/main/resources/META-INF/plexus/components.xml -->
+	  	    <build>
+	  	        <plugins>
+	  	            <plugin>
+						<groupId>com.jayway.maven.plugins.android.generation2</groupId>
+						<artifactId>android-maven-plugin</artifactId>
+						
+	  	                <executions>
+	  	                    <!-- This is required so it generates the R.class that tests use to reference test resources. 
+							<execution>
+			                    <id>default-generate-sources</id>
+			                    <phase>none</phase>
+			                </execution>
+	  	                     -->
+							<execution>
+			                    <id>default-proguard</id>
+			                    <phase>none</phase>
+			                </execution>
+							<execution>
+			                    <id>default-dex</id>
+			                    <phase>none</phase>
+			                </execution>
+							<execution>
+			                    <id>default-apk</id>
+			                    <phase>none</phase>
+			                </execution>
+							<execution>
+			                    <id>default-emma</id>
+			                    <phase>none</phase>
+			                </execution>
+							<execution>
+			                    <id>default-internal-pre-integration-test</id>
+			                    <phase>none</phase>
+			                </execution>
+							<execution>
+			                    <id>default-internal-integration-test</id>
+			                    <phase>none</phase>
+			                </execution>
+			            </executions>
+	  	            </plugin>
+	  	        </plugins>
+	  	    </build>
+	  	</profile>    
+	</profiles>
+	  
+	<build>
+      
+	    <!-- Used to be able to perform Manifest Mening, see configuration for android-maven-plugin below -->
+	    <resources>
+		    <resource>
+		        <targetPath>${project.build.directory}</targetPath>
+		        <filtering>true</filtering>
+		        <directory>${basedir}</directory>
+		        <includes>
+		            <include>AndroidManifest.xml</include>
+		        </includes>
+		    </resource>
+		</resources>
+		
+	  	<plugins>
+	  
+		 	<!-- Disabling default resource copying so Maven Android plugin can do its thing with resources prior to packaging -->
+		    <plugin>
+	            <artifactId>maven-resources-plugin</artifactId>
+	            <version>2.6</version>
+	            <executions>
+	                <execution>
+	                    <phase>initialize</phase>
+	                    <goals>
+	                        <goal>resources</goal>
+	                    </goals>
+	                </execution>
+					<execution>
+	                    <id>default-resources</id>
+	                    <phase>DISABLED</phase>
+	                </execution>
+	            </executions>
+	            
+	            <configuration>
+	                <encoding>UTF-8</encoding>
+	            </configuration>
+	        </plugin>
+		    
+		    <!-- Maven Android to perform APK packaging via Maven instead of Eclipse built-in build process -->
+		    <plugin>
+				<groupId>com.jayway.maven.plugins.android.generation2</groupId>
+				<artifactId>android-maven-plugin</artifactId>
+				<version>3.6.0</version>
+		
+				<extensions>true</extensions>
+				<configuration>
+					<androidManifestFile>${project.build.directory}/AndroidManifest.xml</androidManifestFile>
+					<mergeManifests>true</mergeManifests>
+					
+					<apkMetaIncludes>
+					    <metaInclude>maven/**</metaInclude>
+					</apkMetaIncludes>
+
+					<assetsDirectory>${project.basedir}/assets</assetsDirectory>
+					<resourceDirectory>${project.basedir}/res</resourceDirectory>
+					<nativeLibrariesDirectory>${project.basedir}/src/main/native</nativeLibrariesDirectory>
+					
+					<sdk>
+						<platform>16</platform>
+					</sdk>
+					
+					<undeployBeforeDeploy>true</undeployBeforeDeploy>
+					
+				</configuration>
+			</plugin>
+			  
+		    <plugin>
+		        <groupId>org.apache.maven.plugins</groupId>
+		        <artifactId>maven-compiler-plugin</artifactId>
+		        <version>3.0</version>
+		        <configuration>
+		          <source>1.6</source>
+		          <target>1.6</target>
+		          <encoding>UTF-8</encoding>
+		        </configuration>
+		    </plugin>
+		    
+		    <plugin>
+		        <groupId>org.apache.maven.plugins</groupId>
+		        <artifactId>maven-release-plugin</artifactId>
+		        <version>2.4</version>
+		        <configuration>
+		          <tagNameFormat>CloudSDK-v@{project.version}</tagNameFormat>
+		        </configuration>
+		    </plugin>
+		      
+		      
+	  	</plugins>
+  	</build>
+	
+</project>

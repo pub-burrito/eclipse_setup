@@ -1,0 +1,1133 @@
+[
+  {
+    "symbolicName": "backport-util-concurrent-3.1",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "682f7ac17fed79e92f8e87d8455192b63376347b",
+    "jarFileModificationDate": "2013-05-20T12:28:48-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/backport-util-concurrent/backport-util-concurrent/3.1/backport-util-concurrent-3.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "xercesMinimal-1.9.6.2",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "0d1c5e063683a0e6f77cd5f051a9d4af48346fa6",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/nekohtml/xercesMinimal/1.9.6.2/xercesMinimal-1.9.6.2.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.javassist.javassist",
+    "version": {
+      "major": 3,
+      "minor": 14,
+      "micro": 0,
+      "qualifier": "GA"
+    },
+    "jarFileFingerprint": "75eb2fb4dcf9694b18e5383a714c664cced91810",
+    "jarFileModificationDate": "2013-05-20T12:28:50-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/javassist/javassist/3.14.0-GA/javassist-3.14.0-GA.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "classworlds-1.1-alpha-2",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "05adf2e681c57d7f48038b602f3ca2254ee82d47",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/classworlds/classworlds/1.1-alpha-2/classworlds-1.1-alpha-2.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.httpcomponents.httpcore",
+    "version": {
+      "major": 4,
+      "minor": 0,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "e813b8722c387b22e1adccf7914729db09bcb4a9",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/httpcomponents/httpcore/4.0.1/httpcore-4.0.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "ant-1.8.0",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "7b456ca6b93900f96e58cc8371f03d90a9c1c8d1",
+    "jarFileModificationDate": "2013-05-20T12:28:49-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/ant/ant/1.8.0/ant-1.8.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "robolectric-2.0-alpha-1",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "61ad78d25ad04633b2cfe8b13de02e4818afc2e3",
+    "jarFileModificationDate": "2013-05-20T12:28:48-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/robolectric/robolectric/2.0-alpha-1/robolectric-2.0-alpha-1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-artifact",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "23600f790d4dab2cb965419eaa982e3e84c428f8",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-artifact/2.2.1/maven-artifact-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ca9e390a18f6bed5719c731eb0a021da33ada472",
+    "jarFileModificationDate": "2011-07-14T15:43:29-04:00",
+    "location": "/System/Library/Java/Extensions/j3dcore.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "187a3cf6ae2087c1e05147287a8c627acbc4d497",
+    "jarFileModificationDate": "2011-09-02T19:37:04-04:00",
+    "location": "/System/Library/Java/Extensions/AppleScriptEngine.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "nekohtml-1.9.6.2",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "2d960be7b62ae6622dbbbe49ab4ffdc609f85c80",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/nekohtml/nekohtml/1.9.6.2/nekohtml-1.9.6.2.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "f3a8fdb7d78f617950cbfeb88d000c80b20d4edc",
+    "jarFileModificationDate": "2013-04-07T14:11:43-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home/lib/ext/apple_provider.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "9d5494d9bcfe39e03d9fbdd79a150e3c67d998d0",
+    "jarFileModificationDate": "2013-02-12T22:37:23-05:00",
+    "location": "/System/Library/Java/Extensions/QTJava.zip",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-project",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "8239e98c16f641d55a4ad0e0bab0aee3aff8933f",
+    "jarFileModificationDate": "2013-05-20T12:28:51-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-project/2.2.1/maven-project-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-error-diagnostics",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "e81bb342d7d172f23d108dc8fa979a1facdcde8e",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-error-diagnostics/2.2.1/maven-error-diagnostics-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "com.github.ignition.ignition-support",
+    "version": {
+      "major": 0,
+      "minor": 1,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ba21aa66f18026018a327c33a47595d10d5a6f3e",
+    "jarFileModificationDate": "2013-05-20T12:27:06-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/github/ignition/ignition-support/0.1/ignition-support-0.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-artifact-manager",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ec355b913c34d37080810f98e3f51abecbe1572b",
+    "jarFileModificationDate": "2013-05-20T12:28:48-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-artifact-manager/2.2.1/maven-artifact-manager-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.codehaus.plexus.plexus-utils",
+    "version": {
+      "major": 1,
+      "minor": 5,
+      "micro": 15,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "c689598ce1eb94c304817877ed15911099972526",
+    "jarFileModificationDate": "2013-05-20T12:27:11-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/codehaus/plexus/plexus-utils/1.5.15/plexus-utils-1.5.15.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "junit-3.8.2",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "07e4cde26b53a9a0e3fe5b00d1dbbc7cc1d46060",
+    "jarFileModificationDate": "2013-05-20T12:26:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/junit/junit/3.8.2/junit-3.8.2.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "compatibility-v4-11",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "48c94ae70fa65718b382098237806a5909bb096e",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/android/support/compatibility-v4/11/compatibility-v4-11.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-profile",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "3950071587027e5086e9c395574a60650c432738",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-profile/2.2.1/maven-profile-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "maps-17_r1",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "310ee5d277fd5a75d7071b6646befe83636e6b79",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/android/maps/maps/17_r1/maps-17_r1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "freemarker-2.3.18",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "7b0cd31bfed5ceb396bdcdc088b24e6ff9eae96f",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/freemarker/freemarker/2.3.18/freemarker-2.3.18.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "com.github.rtyley.roboguice-sherlock",
+    "version": {
+      "major": 1,
+      "minor": 5,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ee18bc59b8abb8d39809822f4c6dfcd5afb89c1c",
+    "jarFileModificationDate": "2013-05-20T12:27:58-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/github/rtyley/roboguice-sherlock/1.5/roboguice-sherlock-1.5.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.codehaus.plexus.plexus-interpolation",
+    "version": {
+      "major": 1,
+      "minor": 11,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ad9dddff6043194904ad1d2c00ff1d003c3915f7",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/codehaus/plexus/plexus-interpolation/1.11/plexus-interpolation-1.11.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "support-v4-r7",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "24d0f6da34c3a2bfcf736ab42d51c91ac821ee22",
+    "jarFileModificationDate": "2013-05-20T12:28:49-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/android/support-v4/r7/support-v4-r7.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ac73395497290cd555431fb1c157e573bbed0c0b",
+    "jarFileModificationDate": "2013-04-25T23:13:51-04:00",
+    "location": "/System/Library/Java/Extensions/MRJToolkit.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "aopalliance-1.0",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "0235ba8b489512805ac13a8f9ea77a1ca5ebe3e8",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/aopalliance/aopalliance/1.0/aopalliance-1.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-settings",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "2236ffe71fa5f78ce42b0f5fc22c54ed45f14294",
+    "jarFileModificationDate": "2013-05-20T12:28:48-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-settings/2.2.1/maven-settings-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "com.google.android.annotations",
+    "version": {
+      "major": 4,
+      "minor": 1,
+      "micro": 1,
+      "qualifier": "4"
+    },
+    "jarFileFingerprint": "a1678ba907bf92691d879fef34e1a187038f9259",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/android/annotations/4.1.1.4/annotations-4.1.1.4.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.json.json",
+    "version": {
+      "major": 20080701,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "d652f102185530c93b66158b1859f35d45687258",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/json/json/20080701/json-20080701.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "freemarker-2.3.19",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "a251045e5fadd02824d17f1aa8c412accf1aa1c9",
+    "jarFileModificationDate": "2013-05-20T12:27:45-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/freemarker/freemarker/2.3.19/freemarker-2.3.19.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "com.google.inject",
+    "version": {
+      "major": 3,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "28586dc97c525501329d9a242fc3402041e3572d",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/inject/guice/3.0/guice-3.0-no_aop.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "android",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "47ffff881d2fe54d5c646fcc3a646bf291008448",
+    "jarFileModificationDate": "2013-03-27T11:33:11-04:00",
+    "location": "/Users/adt-bundle-mac-x86_64-20130219/sdk/platforms/android-16/android.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "bcd6ab898f8c739b8347e7daa8fe1de5f375b39d",
+    "jarFileModificationDate": "2013-04-07T13:54:33-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/jsse.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "org.apache.httpcomponents.httpclient",
+    "version": {
+      "major": 4,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "a76d7fd8033d48b4c67b4ccf159abb080c1059b6",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/httpcomponents/httpclient/4.0/httpclient-4.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "5e2a95ed98a90c44279f54efd8d5f55fc889a23f",
+    "jarFileModificationDate": "2013-04-07T14:04:40-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home/lib/ext/localedata.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "4f8da5f0b2561d280a59a4414c59083dec8e0227",
+    "jarFileModificationDate": "2011-07-14T16:44:11-04:00",
+    "location": "/System/Library/Java/Extensions/jai_codec.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "opengl-api-gl1.1-android-2.1_r1",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "8827d279add29cf9115820671e7879de7bf80390",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/khronos/opengl-api/gl1.1-android-2.1_r1/opengl-api-gl1.1-android-2.1_r1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "wagon-http-shared-1.0-beta-6",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ccd70d7e0d8c085e648a83f072da06ca9a53be94",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/wagon/wagon-http-shared/1.0-beta-6/wagon-http-shared-1.0-beta-6.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "34699721120eede31b7fe5140226deedc0b2aab9",
+    "jarFileModificationDate": "2011-07-14T15:43:29-04:00",
+    "location": "/System/Library/Java/Extensions/j3daudio.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "greendao-1.3.0",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "fc1bb0b579277b34d086aa10fd9b6238ebfa3272",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/de/greenrobot/greendao/1.3.0/greendao-1.3.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.xerial.sqlite-jdbc",
+    "version": {
+      "major": 3,
+      "minor": 7,
+      "micro": 2,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "7a3d67f00508d3881650579f7f228c61bfc1b196",
+    "jarFileModificationDate": "2013-05-20T12:28:50-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/xerial/sqlite-jdbc/3.7.2/sqlite-jdbc-3.7.2.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.mockito.mockito-all",
+    "version": {
+      "major": 1,
+      "minor": 9,
+      "micro": 5,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "79a8984096fc6591c1e3690e07d41be506356fa5",
+    "jarFileModificationDate": "2013-05-20T12:28:50-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/mockito/mockito-all/1.9.5/mockito-all-1.9.5.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "0999f1f3951d713e9a0d96f063f6f6e931589cdd",
+    "jarFileModificationDate": "2011-07-14T15:43:29-04:00",
+    "location": "/System/Library/Java/Extensions/vecmath.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "0a96b7d4126b3a5e4ac1bfb648ce0a059e03f7de",
+    "jarFileModificationDate": "2013-04-25T23:13:53-04:00",
+    "location": "/System/Library/Java/Extensions/dns_sd.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-model",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "c0a1c17436ec3ff5a56207c031d82277b4250a29",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-model/2.2.1/maven-model-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "c40b948a8103c939a0da54723630db9d4633c350",
+    "jarFileModificationDate": "2013-04-07T13:54:33-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home/lib/ext/sunjce_provider.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "ant-launcher-1.8.0",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "08b53ba16fa62fb1034da8f1de200ddc407c8381",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/ant/ant-launcher/1.8.0/ant-launcher-1.8.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "f61f71496ffdd90c7b1af3c651a2223e906508a5",
+    "jarFileModificationDate": "2013-04-07T14:00:44-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home/lib/ext/sunpkcs11.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "plexus-container-default-1.0-alpha-9-stable-1",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "94aea3010e250a334d9dab7f591114cd6c767458",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/codehaus/plexus/plexus-container-default/1.0-alpha-9-stable-1/plexus-container-default-1.0-alpha-9-stable-1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "xmlParserAPIs-2.6.2",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "065acede1e5305bd2b92213d7b5761328c6f4fd9",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/xerces/xmlParserAPIs/2.6.2/xmlParserAPIs-2.6.2.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "c5d7b7bfab9b433c4b62aebbe76a564b6bcf8192",
+    "jarFileModificationDate": "2011-07-14T16:43:57-04:00",
+    "location": "/System/Library/Java/Extensions/mlibwrapper_jai.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "wagon-http-lightweight-1.0-beta-6",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "b3815078570c3b1f0667e123d59717c6b726c6c2",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/wagon/wagon-http-lightweight/1.0-beta-6/wagon-http-lightweight-1.0-beta-6.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "xpp3-1.1.4c",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "9b988ea84b9e4e9f1874e390ce099b8ac12cfff5",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/xpp3/xpp3/1.1.4c/xpp3-1.1.4c.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "wagon-provider-api-1.0-beta-6",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "3f952e0282ae77ae59851d96bb18015e520b6208",
+    "jarFileModificationDate": "2013-05-20T12:28:48-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/wagon/wagon-provider-api/1.0-beta-6/wagon-provider-api-1.0-beta-6.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.httpcomponents.httpclient",
+    "version": {
+      "major": 4,
+      "minor": 0,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "1d7d28fa738bdbfe4fbd895d9486308999bdf440",
+    "jarFileModificationDate": "2013-05-20T12:27:45-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/httpcomponents/httpclient/4.0.1/httpclient-4.0.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "80a1b59c9a46cd5cd3869637f77eb5261937fd35",
+    "jarFileModificationDate": "2011-07-14T15:43:29-04:00",
+    "location": "/System/Library/Java/Extensions/j3dutils.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "com.google.android.android-test",
+    "version": {
+      "major": 4,
+      "minor": 1,
+      "micro": 1,
+      "qualifier": "4"
+    },
+    "jarFileFingerprint": "5ac4da79230c68fc7d60dc6b02f1c153fca7a6e6",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/android/android-test/4.1.1.4/android-test-4.1.1.4.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "4ab6d5b99bb66caf5e87c5f0f03c73105c677ad2",
+    "jarFileModificationDate": "2013-04-07T14:04:51-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/charsets.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "70e3f9e76e3d5884415516c0cee0855295bcb571",
+    "jarFileModificationDate": "2013-04-07T13:54:33-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/jce.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "junit-dep-4.10",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "64417b3bafdecd366afa514bd5beeae6c1f85ece",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/junit/junit-dep/4.10/junit-dep-4.10.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "greendao-generator-1.3.0",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "3382532b2b465783e436948f0e16f7f5885271c6",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/de/greenrobot/greendao-generator/1.3.0/greendao-generator-1.3.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "javax.inject-1",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "6975da39a7040257bd51d21a231b76c915872d38",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/javax/inject/javax.inject/1/javax.inject-1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.objenesis.objenesis",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "9b473564e792c2bdf1449da1f0b1b5bff9805704",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/objenesis/objenesis/1.0/objenesis-1.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "commons-logging",
+    "version": {
+      "major": 1,
+      "minor": 1,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "5043bfebc3db072ed80fbd362e7caf00e885d8ae",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "android",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "4ce719a74198cca562a8859e7d4ffa38f3ec26b4",
+    "jarFileModificationDate": "2013-02-13T06:54:22-05:00",
+    "location": "/Users/adt-bundle-mac-x86_64-20130219/sdk/platforms/android-17/android.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "com.google.android.android",
+    "version": {
+      "major": 4,
+      "minor": 1,
+      "micro": 1,
+      "qualifier": "4"
+    },
+    "jarFileFingerprint": "3fb039385e71e9aa2ba547ea9ea8caa34a4ffac7",
+    "jarFileModificationDate": "2013-05-20T12:27:04-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/android/android/4.1.1.4/android-4.1.1.4.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "maven-ant-tasks-2.1.3",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "b09be554228d66d208e5fef5266844aacf443abc",
+    "jarFileModificationDate": "2013-05-20T12:28:49-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-ant-tasks/2.1.3/maven-ant-tasks-2.1.3.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "wagon-file-1.0-beta-6",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "6c53633505460caf49d2660de1e24744d915afb9",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/wagon/wagon-file/1.0-beta-6/wagon-file-1.0-beta-6.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "com.google.guava",
+    "version": {
+      "major": 12,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "5bc66dd95b79db1e437eb08adba124a3e4088dc0",
+    "jarFileModificationDate": "2013-05-20T12:27:02-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/guava/guava/12.0/guava-12.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "cloudsdk",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "a416ebf22edd3579e85e2df7f13bb1acd883a9c1",
+    "jarFileModificationDate": "2013-05-20T13:17:38-04:00",
+    "location": "/Users/stevencitrix/Documents/workspace/CloudSDK/bin/cloudsdk.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jsr305-1.3.9",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "40719ea6961c0cb6afaeb6a921eaa1f6afd4cfdf",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/code/findbugs/jsr305/1.3.9/jsr305-1.3.9.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "com.google.gson",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 2,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "1f96456ca233dec780aa224bff076d8e8bca3908",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/code/gson/gson/2.2.2/gson-2.2.2.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "commons-codec-1.3",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "fd32786786e2adb664d5ecc965da47629dca14ba",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/commons-codec/commons-codec/1.3/commons-codec-1.3.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.geronimo.specs.geronimo-activation_1.0.2_spec",
+    "version": {
+      "major": 1,
+      "minor": 2,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "c86b6c3be4ece4340de823677a4f43137c405600",
+    "jarFileModificationDate": "2013-05-20T12:27:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/geronimo/specs/geronimo-activation_1.0.2_spec/1.2/geronimo-activation_1.0.2_spec-1.2.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "7b1733afc0275e80c564568f8a1c5fbe59119d40",
+    "jarFileModificationDate": "2013-04-07T14:11:35-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/ui.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "support-v4-r11",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "48c94ae70fa65718b382098237806a5909bb096e",
+    "jarFileModificationDate": "2013-05-20T12:27:08-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/google/android/support-v4/r11/support-v4-r11.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.commons.lang",
+    "version": {
+      "major": 2,
+      "minor": 6,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "0ce1edb914c94ebc388f086c6827e8bdeec71ac2",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/commons-lang/commons-lang/2.6/commons-lang-2.6.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "096c07686702497c46affdf25d6559ac10235884",
+    "jarFileModificationDate": "2011-07-14T16:44:11-04:00",
+    "location": "/System/Library/Java/Extensions/jai_core.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ec3683ec63bf144edb6b572631a1d8d75f950464",
+    "jarFileModificationDate": "2013-04-07T14:09:01-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar",
+    "javaRuntime": true
+  },
+  {
+    "symbolicName": "com.thoughtworks.qdox.qdox",
+    "version": {
+      "major": 1,
+      "minor": 12,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "63a21ebc981131004ad02e0434e799fd7f3a8d5a",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/hamcrest/hamcrest-all/1.3/hamcrest-all-1.3.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "com.actionbarsherlock.actionbarsherlock",
+    "version": {
+      "major": 4,
+      "minor": 3,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "15c0d39173db2cc6f5597cb2294b07d34e726c0c",
+    "jarFileModificationDate": "2013-05-20T12:28:00-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/com/actionbarsherlock/actionbarsherlock/4.3.0/actionbarsherlock-4.3.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.roboguice.roboguice",
+    "version": {
+      "major": 2,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "727ccb8f376109d0b5c44abca6f791dccc5c5dbc",
+    "jarFileModificationDate": "2013-05-20T12:27:01-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/roboguice/roboguice/2.0/roboguice-2.0.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-plugin-registry",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "72a24b7775649af78f3986b5aa7eb354b9674cfd",
+    "jarFileModificationDate": "2013-05-20T12:28:48-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-plugin-registry/2.2.1/maven-plugin-registry-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "org.apache.maven.maven-repository-metadata",
+    "version": {
+      "major": 2,
+      "minor": 2,
+      "micro": 1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "98f0c07fcf1eeb213bef8d9316a9935184084b06",
+    "jarFileModificationDate": "2013-05-20T12:28:47-04:00",
+    "location": "/Users/stevencitrix/.m2/repository/org/apache/maven/maven-repository-metadata/2.2.1/maven-repository-metadata-2.2.1.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "jre",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "micro": 0,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "ff9ef0f8ac62416c62c8bc4228c50ce95b3c58ae",
+    "jarFileModificationDate": "2013-04-25T23:13:52-04:00",
+    "location": "/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home/lib/ext/dnsns.jar",
+    "javaRuntime": true
+  }
+]

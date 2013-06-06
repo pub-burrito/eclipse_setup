@@ -1,0 +1,5 @@
+eclipse.preferences.version=1
+task-tag-projects-already-scanned=CloudApp,CloudApp-TestSuite,CloudFramework,CloudSDK,CloudSDK-TestApp,CloudSDK-TestSuite,CloudSample-LiveSync,build,CloudApp,CloudApp-TestSuite,CloudFramework,CloudSDK,CloudSDK-TestApp,CloudSDK-TestSuite,CloudSample-LiveSync,build,CloudApp,CloudApp-TestSuite,CloudFramework,CloudSDK,CloudSDK-TestApp,CloudSDK-TestSuite,CloudSample-LiveSync,build,CloudApp,CloudApp-TestSuite,CloudFramework,CloudSDK,CloudSDK-TestApp,CloudSDK-TestSuite,CloudSample-LiveSync,build,CloudApp,CloudApp-TestSuite,CloudFramework,CloudSDK,CloudSDK-TestApp,CloudSDK-TestSuite,CloudSample-LiveSync,build,AndroidDemoProject,Cloud,CloudSDK-IntegrationTests
+task-tags/enabled=true
+task-tags/taskPriorities=1,2,2,0
+task-tags/taskTags=TODO,FIXME,TESTIT,ONEDAY

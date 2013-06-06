@@ -1,0 +1,14 @@
+package com.cloud.test.sdk.integration;
+
+import android.content.Context;
+
+import com.cloud.sdk.Cloud;
+
+public class CloudValues {
+
+	private CloudValues mInstance;
+	
+	private CloudValues(Context context){
+		Cloud.init(context);
+	}
+}

@@ -1,0 +1,343 @@
+package com.cloud.sdk.service.auth;
+
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import android.text.TextUtils;
+
+import com.cloud.framework.config.CloudApplication;
+import com.cloud.framework.service.model.auth.AuthCredentials;
+import com.cloud.framework.service.model.auth.AuthSession;
+import com.cloud.sdk.threading.CloudCall;
+import com.cloud.sdk.threading.CloudCall.CloudServiceRequestCall;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+/**
+ * <!--
+ * CloudCredentials.java
+ * -->
+ * This class represents a developer's identity and is used for authentication and authorization
+ * when dealing with a particular Application registered for services at Cloud.com.
+ * 
+ * This can be used to define either an Application credentials or Session credentials. The first
+ * providing access to all services and resources while the second can be scoped down to particular
+ * period and services and resources, i.e.: only to Sync services and one Syncbox.
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date May 13, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+public class CloudCredentials implements Serializable {
+
+	private AuthCredentials credentials;
+	private AuthSession session;
+	
+	//[start] Constructors
+
+	private CloudCredentials(AuthSession session) {
+		this.credentials = session.credentials();
+		this.session = session;
+	}
+	
+	/**
+	 * Initializes a credentials instance with the pre-configured key and secret (useful for Application credentials) read from {@code res/values/cloud_config.xml}.
+	 */
+	public CloudCredentials() {
+		credentials = CloudApplication.getCredentials();
+	}
+	
+	/**
+	 * Initializes a credentials instance with key and secret (useful for Application credentials).
+	 * 
+	 * @param key		Public key
+	 * @param secret	Private key/secret
+	 */
+	public CloudCredentials(String key, String secret) {
+		this(key, secret, null);
+	}
+	
+	/**
+	 * Initializes a credentials instance with key, secret and token (useful for Session credentials).
+	 * 
+	 * @param key		Public key
+	 * @param secret	Private key/secret
+	 * @param token		Temporary access token, for limited credentials
+	 */
+	@SuppressWarnings("serial")
+	public CloudCredentials(String key, String secret, String token) {
+		
+		final String keyValue = key;
+		final String secretValue = key;
+		final String tokenValue = key;
+		
+		if (token == null) {
+			credentials = new AuthCredentials() {
+				{
+					key = keyValue;
+					secret = secretValue;
+				}
+			};
+			
+		} else {
+			session = new AuthSession() {
+				{
+					key = keyValue;
+					secret = secretValue;
+					token = tokenValue;
+				}
+			};
+			
+			credentials = session.credentials();
+		}
+	}
+
+	//[end]
+	
+	//[start] Properties accessors
+	
+	/**
+	 * Gets the public access key used to sign requests for this CloudCredential
+	 * @return Public Access Key used to sign requests
+	 */
+	public String key() {
+		return credentials.key;
+	}
+	
+	/**
+	 * Gets the private access secret used to sign request for this CloudCredential
+	 * @return Private Access Secret used to sign request
+	 */
+	public String secret() {
+		return credentials.secret;
+	}
+	
+	/**
+	 * Gets the temporary token that represents a limited time access identifier for this CloudCredential.
+	 * @return Temporary Token that represents a limited time access identifier.
+	 */
+	public String token() {
+		return credentials.token;
+	}
+	
+	/**
+	 * Gets the date of expiration of this CloudCredential.
+	 * @return Timestamp when session expires if {@link #isSession()} is true, false otherwise
+	 */
+	public Date expirationDate() {
+		return isSession() ? session.expiresAt : null;
+	}
+	
+	//TODO: https://www.pivotaltracker.com/story/show/50763829
+	/**
+	 * Gets the CloudSyncbox IDs that this CloudCredential can be used for.
+	 * @return IDs of the Syncbox this session is entitled to call APIs for.
+	 */
+	public List<Long> syncboxIds() {
+		return isSession() ? session.syncBoxIds : null;
+	}
+	
+	/**
+	 * Helper method that returns whether the credentials contained in this object represent a session credentials.
+	 * 
+	 * @return {@link Boolean#TRUE} if credentials are session credentials or {@link Boolean#FALSE} otherwise. 
+	 */
+	public boolean isSession() {
+		return session != null && !TextUtils.isEmpty(credentials.token);
+	}
+	//[end]
+	
+	volatile private CloudCredentialsStatusListener listener;
+	
+	/**
+	 * Set the {@link CloudCredentialsStatusListener} for this CloudCredential
+	 * @param listener - the listener to assign to this CloudCredential
+	 * @return the CloudCredential that was assigned the listener
+	 */
+	public CloudCredentials listen(CloudCredentialsStatusListener listener) {
+		this.listener = listener;
+		
+		return this;
+	}
+
+	//[start] Action methods
+	
+	/**
+	 * Requests a set of session credentials from Cloud.com for the specified {@code syncboxIds}.
+	 * 
+	 * This method takes the Application's credentials and requests that a set of session credentials be
+   	 * created that will allow access to the specified syncBoxId with the default time to live of 36h.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudCredentials>
+		createSession(
+			long syncboxId
+		) 
+	{
+		return create(Arrays.asList(syncboxId), null);
+	}
+	
+	/**
+	 * Requests a set of session credentials from Cloud.com for the specified {@code syncboxIds}.
+	 * 
+	 * This method takes the Application's credentials and requests that a set of session credentials be
+   	 * created that will allow access to the specified syncBoxId and be valid for the specified duration.
+	 *
+	 * @param syncboxId		ID of the Syncbox this session is entitled to call APIs for. 
+	 * @param timeToLive 	Number of minutes to keep session active. Default is 36h, Maximum of 120h is accepted. Defines <b>expiresAt</b> return value for session.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudCredentials>
+		create(
+			long syncboxId,
+			Integer timeToLive
+		) 
+	{
+		return create(Arrays.asList(syncboxId), timeToLive);
+	}
+	
+	/**
+	 * Requests a set of session credentials from Cloud.com for the specified {@code syncboxIds}.
+	 * 
+	 * This method takes the Application's credentials and requests that a set of session credentials be
+   	 * created that will allow access to the specified syncBoxIds and be valid for the specified duration.
+	 *
+	 * @param syncboxIds	List of IDs of the Syncbox this session is entitled to call APIs for. 
+	 * @param timeToLive	Number of minutes to keep session active. Default is 36h, Maximum of 120h is accepted. Defines <b>expiresAt</b> return value for session.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudCredentials>
+		create(
+			List<Long> syncboxIds,
+			Integer timeToLive
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<AuthSession, CloudCredentials>(
+				AuthSession.create(syncboxIds, timeToLive)
+			) 
+			{
+				protected CloudCredentials transform(AuthSession authSession) {
+					return CloudCredentials.transform(authSession);
+				}
+			}.credentials(this);
+	}
+	
+	/**
+	 * Requests credentials information from the server.
+	 *
+   	 * This method takes the Application's credentials and requests the credentials for a specific session, identified by the session key.
+   	 * 
+	 * @param key	Public Key of the session to retrieve information for.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public CloudCall<CloudCredentials>
+		session(
+			String key
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<AuthSession, CloudCredentials>(
+				AuthSession.show(key)
+			) 
+			{
+				protected CloudCredentials transform(AuthSession authSession) {
+					return CloudCredentials.transform(authSession);
+				}
+			}.credentials(this);
+	}
+
+	/**
+	 * Invalidates a set of session credentials.
+	 * 
+	 * This method invalidates the specified session credentials on the server.
+   	 * 
+	 * @param key	Public Key of the session to invalidate.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public CloudCall<Void>
+		delete(
+			String key
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<Void, Void>(
+				AuthSession.delete(key)
+			) 
+			{
+				protected Void transform(Void nothing) {
+					return nothing;
+				}
+			}.credentials(this);
+	}
+	
+	/**
+	 * Lists the currently active session credentials for the Application.
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public CloudCall<List<CloudCredentials>>
+		list() 
+	{
+		return 
+			new CloudServiceRequestCall<List<AuthSession>, List<CloudCredentials>>(
+				AuthSession.list()
+			) 
+			{
+				protected List<CloudCredentials> transform(List<AuthSession> authSessions) {
+					return transformList(authSessions);
+				}
+			}.credentials(this);
+	}
+	
+	public void expired() {
+		if (listener != null) {
+			listener.sessionCredentialsExpired(this);
+		}
+	}
+	
+	//[end]
+	
+	//[start] Transformation methods
+	
+	private static CloudCredentials transform(final AuthSession authSession) {
+		return new CloudCredentials(authSession);
+	}
+
+	private static List<CloudCredentials> transformList(List<AuthSession> authSessions) {
+		return 
+			Lists.transform(
+				authSessions,
+				
+				new Function<AuthSession, CloudCredentials>() {
+					
+					@Override @Nullable
+					public CloudCredentials apply(@Nullable AuthSession authSession) {
+						return transform(authSession);
+					}
+				}
+			);
+	}
+	
+	//[end]
+
+	//Security through obscurity
+	public class $Private$Accessor$ {
+		public AuthCredentials credentials() {
+			return CloudCredentials.this.credentials;
+		}
+	}
+	
+	private static final long serialVersionUID = -3936168638404337505L;
+
+}

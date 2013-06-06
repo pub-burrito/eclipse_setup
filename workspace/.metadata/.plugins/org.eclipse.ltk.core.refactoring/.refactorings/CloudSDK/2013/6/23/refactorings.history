@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Extract local variable &apos;directoryName&apos; from expression &apos;StringUtil.parentPath(localPath)&apos;&#x0A;- Original project: &apos;CloudSDK&apos;&#x0A;- Variable name: &apos;directoryName&apos;&#x0A;- Destination method: &apos;com.cloud.sdk.service.sync.CloudSyncbox.fileToAdd()&apos;&#x0A;- Variable expression: &apos;StringUtil.parentPath(localPath)&apos;&#x0A;- Replace occurrences of expression with variable" description="Extract local variable &apos;directoryName&apos;" final="false" id="org.eclipse.jdt.ui.extract.temp" input="/src\/main\/java&lt;com.cloud.sdk.service.sync{CloudSyncbox.java" name="directoryName" replace="true" selection="26636 32" stamp="1370443079896" version="1.0"/>
+</session>

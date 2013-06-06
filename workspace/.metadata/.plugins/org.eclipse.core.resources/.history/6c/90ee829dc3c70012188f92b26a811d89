@@ -1,0 +1,59 @@
+package com.cloud.framework.net.cache;
+
+import com.cloud.framework.util.StringUtil;
+
+import android.text.TextUtils;
+
+public class CloudCacheParams {
+	public long syncBoxId;
+	public String remotePath;
+	public String fileHash;
+	public boolean cache;
+	public String localPath;
+	
+	public String getLocalCacheFileName() {
+		String fileName = fileName();
+		
+		if (!TextUtils.isEmpty(localPath)) {
+			return 
+				localPath.endsWith("/") ? 
+					fileName : 
+					StringUtil.lastPathComponent(localPath);
+			
+		} else {
+			//contextualize it by SyncBox
+			fileName = contextualizePath(fileName);
+			
+			return fileName;
+		}
+	}
+
+	private String fileName() {
+		String fileName = StringUtil.fromAlternatives(localPath, remotePath, "");
+		
+		final int extensionStart = fileName.lastIndexOf(".");
+		String extension = fileName.substring(extensionStart + 1);
+		
+		if (!extension.equals(fileName)) {
+			fileName = 
+				String.format(
+					"%s-%s.%s", 
+					fileName.substring(0, extensionStart),
+					fileHash,
+					extension
+				);
+		} else {
+			fileName = String.format("%s-%s", fileName, fileHash);
+		}
+		return fileName;
+	}
+
+	private String contextualizePath(String fileName) {
+		return String.format(
+				"/syncbox.%s/%s", 
+				
+				syncBoxId, 
+				fileName
+			);
+	}
+}

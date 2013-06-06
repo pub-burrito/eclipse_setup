@@ -1,0 +1,24 @@
+package com.cloud.test.sdk.integration;
+
+import android.content.Context;
+
+import com.cloud.sdk.Cloud;
+import com.cloud.sdk.service.sync.CloudSyncbox;
+
+public class CloudValues {
+
+	private static CloudValues mInstance;
+	
+	private CloudValues(Context context){
+		Cloud.init(context);
+	}
+	
+	public static CloudValues instance(Context context){
+		if(mInstance == null)
+			mInstance = new CloudValues(context);
+		return mInstance;
+	}
+
+	public CloudSyncbox syncbox;
+	
+}

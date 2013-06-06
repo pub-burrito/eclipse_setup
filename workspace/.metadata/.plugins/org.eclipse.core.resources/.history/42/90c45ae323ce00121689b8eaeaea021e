@@ -1,0 +1,5 @@
+package com.cloud.test.sdk.integration;
+
+public class CloudValues {
+
+}

@@ -1,0 +1,148 @@
+package com.cloud.samples.sdk.android.sync.ondemand;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import roboguice.util.Ln;
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import com.cloud.framework.threading.AsyncRunnable.ExecutionThread;
+import com.cloud.framework.threading.AsyncRunnable.ThreadContext;
+import com.cloud.sdk.service.sync.CloudFileItem;
+import com.cloud.sdk.service.sync.CloudStoragePlan;
+import com.cloud.sdk.service.sync.CloudSyncbox;
+import com.cloud.sdk.threading.CloudCallHandler;
+
+public class CloudSyncboxActivity extends Activity implements OnItemClickListener{
+		
+	ListView listView;
+	CustomAdapter<CloudSyncbox> adapter;
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		listView = (ListView)findViewById(R.id.container);
+	}
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+		
+		/*
+		 * Get a list of all the CloudSyncbox available
+		 */
+		CloudSyncbox
+			.list()
+			.handle(new CloudCallHandler<List<CloudSyncbox>>() {
+				
+				@Override
+				@ExecutionThread(ThreadContext.UI)
+				public void onSuccess(List<CloudSyncbox> syncboxes) throws Exception {						
+					adapter = new CustomAdapter<CloudSyncbox>(CloudSyncboxActivity.this, new ArrayList<CloudSyncbox>(syncboxes));
+					listView.setAdapter(adapter);
+					listView.setOnItemClickListener(CloudSyncboxActivity.this);
+					setProgressBarIndeterminateVisibility(false);
+				}
+				
+				@Override
+				@ExecutionThread(ThreadContext.UI)
+				public void onError(Exception error) {
+					Ln.e(error);
+					setProgressBarIndeterminateVisibility(false);
+					Toast.makeText(CloudSyncboxActivity.this, "Failure. Could not get list of CloudSyncboxes", Toast.LENGTH_SHORT).show();
+				}
+			});
+
+		setProgressBarIndeterminateVisibility(true);
+	}
+	
+	@Override
+	protected void onPause() {
+		super.onPause();
+		if(adapter != null){
+			adapter.clear();
+			adapter.notifyDataSetChanged();
+		}
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.menu, menu);
+		return true;
+	}
+	
+	@Override
+	public boolean onMenuItemSelected(int featureId, MenuItem item) {	
+		switch (item.getItemId()) {
+		case R.id.add:
+			
+			/*
+			 * Create a new CloudSyncbox`
+			 */
+			CloudSyncbox
+				.create()
+				.handle(new CloudCallHandler<CloudSyncbox>() {
+
+					@Override
+					@ExecutionThread(ThreadContext.UI)
+					public void onError(Exception error) {
+						Toast.makeText(CloudSyncboxActivity.this, "Failure", Toast.LENGTH_SHORT).show();
+						Ln.e(error);
+					}
+	
+					@Override
+					@ExecutionThread(ThreadContext.UI)
+					public void onSuccess(CloudSyncbox syncboxes) throws Exception {
+						adapter.add(syncboxes);
+						adapter.notifyDataSetChanged();
+					}
+				});
+			break;
+		}
+		return super.onMenuItemSelected(featureId, item);
+	}
+
+	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {		
+		/*
+		 * Get the root folder for a particular CloudSyncbox
+		 */
+		final CloudSyncbox syncbox = (CloudSyncbox)parent.getItemAtPosition(position);
+		box = syncbox;
+		syncbox
+			.root()
+			.handle(new CloudCallHandler<CloudFileItem>() {
+
+				@Override
+				public void onError(Exception error) {
+					Ln.e(error);
+				}
+	
+				@Override
+				public void onSuccess(CloudFileItem cloudItem) throws Exception {
+					Intent intent = new Intent(CloudSyncboxActivity.this, CloudFileItemActivity.class);
+					/*
+					 * Serialize cloudItem and syncbox
+					 */
+					intent.putExtra("item", cloudItem);
+					intent.putExtra("syncbox", syncbox);
+					startActivity(intent);
+				}
+			});
+		
+	}
+	
+	public static CloudSyncbox box;
+	
+}

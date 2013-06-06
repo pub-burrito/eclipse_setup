@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<typeInfoHistroy>
+<typeInfo handle="=CloudFramework/src\/main\/java&lt;com.cloud.framework.annotations{ReflectionUtil.java[ReflectionUtil" modifiers="1" timestamp="1370359334000"/>
+<typeInfo handle="=CloudFramework/src\/main\/java&lt;com.cloud.framework.service.model.sync{SyncFile.java[SyncFile" modifiers="1" timestamp="1370236217000"/>
+<typeInfo handle="=CloudFramework/src\/main\/java&lt;com.cloud.framework.service.model.sync{SyncEvent.java[SyncEvent" modifiers="1" timestamp="1369067181000"/>
+<typeInfo handle="=CloudFramework/src\/main\/java&lt;com.cloud.framework.threading{AsyncRunnable.java[AsyncRunnable" modifiers="1025" timestamp="1370359334000"/>
+<typeInfo handle="=CloudApp-TestSuite/\/Users\/stevencitrix\/.m2\/repository\/junit\/junit-dep\/4.10\/junit-dep-4.10.jar&lt;junit.framework(TestCase.class[TestCase" modifiers="1057" timestamp="1369086547000"/>
+<typeInfo handle="=CloudSDK/src\/main\/java&lt;com.cloud.sdk.service.sync{CloudSyncbox.java[CloudSyncbox" modifiers="1" timestamp="1370469800000"/>
+</typeInfoHistroy>

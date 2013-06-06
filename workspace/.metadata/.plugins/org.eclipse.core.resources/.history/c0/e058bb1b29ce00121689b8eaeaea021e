@@ -1,0 +1,135 @@
+package com.cloud.test.sdk.integration.stepdef;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
+import com.cloud.sdk.service.sync.CloudFileItem;
+import com.cloud.sdk.service.sync.CloudSyncbox;
+import com.cloud.sdk.threading.CloudCallHandler;
+import com.cloud.test.sdk.integration.CucumberActivity;
+
+import cucumber.api.android.RunWithCucumber;
+import cucumber.api.java.en.Given;
+import cucumber.api.java.en.Then;
+import cucumber.api.java.en.When;
+
+@RunWithCucumber(features="features/1Off_add_operations.feature")
+public class AddOperation extends BaseStepDef {
+
+    public AddOperation(Class<CucumberActivity> activityClass) {
+		super(activityClass);
+	}
+
+    
+	@Given("^I have a Syncbox$")
+    public void I_have_a_Syncbox() {
+		try{
+        if (values().syncbox == null){
+        	CloudSyncbox
+        		.create()
+        		.get(new CloudCallHandler<CloudSyncbox>(){
+
+					@Override
+					public void onSuccess(CloudSyncbox responseData)
+							throws Exception {
+						System.err.println("Hallo?");
+						values().syncbox = responseData;
+					}
+
+					@Override
+					public void onError(Exception error) {
+						System.err.println("Syncbox could not be created");
+					}
+        			
+        		});
+        }}catch(Exception e){
+        	System.err.println(e);
+        }
+    }
+    
+    
+    @When("^I wait (\\d+) Seconds$")
+    public void I_wait_Seconds(int seconds){
+    	waitFor(seconds * 1000);
+    }
+    
+    @Given("^I Add File \"([^\"]*)\"$")
+    public void I_Add_the_File(String filename){
+    	
+//    	File file = new File(getActivity().getCacheDir().getAbsolutePath() + filename);
+//    	file.delete();
+//    	try {
+//			File.createTempFile(filename.substring(1,filename.lastIndexOf('.')), filename.substring(filename.lastIndexOf('.')), getActivity().getCacheDir());
+//		} catch (IOException e) {
+//			System.err.println(e);
+//			fail("could not create temp file");
+//		}
+//    	
+//    	values().syncbox
+//    		.addFile(file.getAbsolutePath(), "/")
+//    		.get(new CloudCallHandler<CloudFileItem>() {
+//
+//				@Override
+//				public void onSuccess(CloudFileItem responseData)
+//						throws Exception {
+//					
+//				}
+//
+//				@Override
+//				public void onError(Exception error) {
+//					fail("File not added");
+//				}
+//			});
+    }
+
+    @Then("^The File \"([^\"]*)\" Should Exist In The SyncBox$")
+    public void The_File_Should_Exist_In_The_SyncBox(String filename){
+    	
+//    	final String name = filename;
+//    	
+//    	values().syncbox
+//    		.items("/")
+//    		.get(new CloudCallHandler<List<CloudFileItem>>() {
+//
+//				@Override
+//				public void onSuccess(List<CloudFileItem> responseData)
+//						throws Exception {
+//					boolean match = false;
+//					for (CloudFileItem cloudFileItem : responseData) {
+//						if (cloudFileItem.name().equals(name))
+//							match = true;
+//					} 
+//					
+//					assertTrue("file was not found inside the syncbox", match);
+//				}
+//
+//				@Override
+//				public void onError(Exception error) {
+//					System.err.println(error);
+//					fail("error while trying to find file in syncbox");
+//				}
+//			});
+    }
+    
+    @Given("^I Add the Files \"([^\"]*)\"$")
+    public void I_Add_the_Files(String filenames){
+    	
+    }
+    
+    @Then("^The Files \"([^\"]*)\" Should Exist In The SyncBox$")
+    public void The_Files_Should_Exist_In_The_SyncBox(String filenames){
+    	
+    }
+    
+    @Given("^I Add the Directories \"([^\"]*)\"$")
+    public void I_Add_the_Directory(String directoryName){
+    	
+    }
+    
+    @Then("^The Directory \"([^\"]*)\" Should Exist In The SyncBox$")
+    public void The_Directory_Should_Exist_In_The_SyncBox(String directoryName){
+    	
+    }
+
+}

@@ -1,0 +1,494 @@
+package com.cloud.sdk.service.sync;
+
+import java.io.File;
+import java.io.Serializable;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.activation.MimeType;
+import javax.annotation.Nullable;
+
+import android.graphics.Bitmap;
+
+import com.cloud.framework.net.cache.CloudCacheParams;
+import com.cloud.framework.net.cache.CloudDownloadCache;
+import com.cloud.framework.service.model.sync.SyncFile;
+import com.cloud.framework.service.model.sync.SyncFile.MediaType;
+import com.cloud.framework.service.model.sync.SyncFile.SyncImageSize;
+import com.cloud.framework.service.model.sync.SyncFolder;
+import com.cloud.framework.service.model.sync.SyncItem;
+import com.cloud.framework.service.model.sync.SyncShare;
+import com.cloud.framework.util.StringUtil;
+import com.cloud.sdk.threading.CloudCall;
+import com.cloud.sdk.threading.CloudCall.CloudProgressStatus;
+import com.cloud.sdk.threading.CloudCall.CloudServiceRequestCall;
+import com.cloud.sdk.threading.CloudCallHandler;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+/**
+ * <!--
+ * CloudFileItem.java
+ * -->
+ * This class represents the different items contained within a Syncbox.
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date May 17, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+public class CloudFileItem implements Serializable {
+
+	private SyncItem item;
+	private CloudSyncbox syncbox;
+	
+	private CloudFileItem(SyncItem item, CloudSyncbox syncbox) {
+		this.item = item;
+		this.syncbox = syncbox;
+	}
+	
+	//[start] Properties accessors
+	//FIXME: Javadocs and make sure samples can see docs, param names, etc. when including .apklib
+	
+	/**
+	 * Gets the name of this CloudFileItem
+	 * @return Name of this CloudFileItem within the virtual file system.
+	 */
+	public String name() {
+		return StringUtil.fromAlternatives(item.name, StringUtil.lastPathComponent(path()));
+	}
+	
+	/**
+	 * Gets the relative path of this CloudFileItem
+	 * @return Relative Path of this CloudFileItem within the virtual file system.
+	 */
+	public String path() {
+		return item.path();
+	}
+	
+	/**
+	 * Gets the revision of this CloudFileItem
+	 * @return Revision of this CloudFileItem.
+	 */
+	public String revision() {
+		return !item.isFolder ? ((SyncFile) item).revision : null;
+	}
+	
+	/**
+	 * Gets the MD5 has of this CloudFileItem
+	 * @return MD5 Hash of the CloudFileItem to help identify changes as they happen.
+	 */
+	public String hash() {
+		return !item.isFolder ? ((SyncFile) item).fileHash : null;
+	}
+	
+	/**
+	 * Gets the number of bytes for this CloudFileItem
+	 * @return Number of bytes this CloudFileItem contains.
+	 */
+	public long size() {
+		return !item.isFolder ? ((SyncFile) item).fileSize : null;
+	}
+
+	/**
+	 * Gets the MIME Type of this CloudFileItem
+	 * @return MIME Type defining what type of content this CloudFileItem contains.
+	 */
+	public MimeType mimeType() {
+		return !item.isFolder ? ((SyncFile) item).mimeType : null;
+	}
+	
+	/**
+	 * Gets the creation date of this CloudFileItem
+	 * @return Timestamp when the item was originally created.
+	 */
+	public Date createdDate() {
+		return item.createdDate;
+	}
+
+	/**
+	 * Gets the last modified date of this CloudFileItem
+	 * @return Timestamp when the item was last modified. 
+	 */
+	public Date modifiedDate() {
+		return item.modifiedDate;
+	}
+	
+	/**
+	 * Gets the unique ID for this CloudFileItem
+	 * @return Unique Identifier for the Sync Item.
+	 */
+	public String uid() {
+		return item.uid;
+	}
+	
+	/**
+	 * Gets the unique ID for this CloudFileItems's Parent
+	 * @return Unique Identifier for this CloudFileItem's Parent (ie: Folder containing this item).
+	 */
+	public String parentUid() {
+		return item.parentUid;
+	}
+	
+	/**
+	 * Gets flag specifying whether this CloudFileItem is a folder or not.
+	 * @return True if CloudFileItem is a folder, false otherwise; 
+	 */
+	public boolean isFolder() {
+		return item.isFolder;
+	}
+	
+	/**
+	 * Gets the absolute path of this CloudFileItem on the device.
+	 * @return the absolute path of the CloudFileItem on the device.
+	 */
+	public String fileSystemPath() {
+		return 	
+			CloudDownloadCache.instance.getFileForKey(
+					new CloudCacheParams() {
+						{
+							remotePath = path();
+							fileHash = hash();
+							localPath = syncbox.path();
+							syncBoxId = syncbox.id();
+						}
+					}).getAbsolutePath();
+	}
+	
+	public CloudSyncbox syncbox() {
+		return syncbox;
+	}
+	
+	public int childrenCount() {
+		return item.isFolder ? ((SyncFolder) item).totalItemCount() : 0;
+	}
+	
+	//[end]
+	
+	//[start] Action methods
+	
+	//[start] Folder Contents
+	/**
+	 * Retrieves a list of children items (in case the current item is a folder). 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		children() 
+	{
+		return syncbox.items(path());
+	}
+	
+	//[end]
+	
+	//[start] Item Retrieval
+	/**
+	 * Retrieves an item for the specific Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public static CloudCall<CloudFileItem>
+		get(
+			final String uid, 
+			final CloudSyncbox syncbox
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<SyncItem, CloudFileItem>(
+				SyncItem.get(syncbox.id(), uid, null)
+			) 
+			{
+				{
+					credentials(syncbox.credentials());
+				}
+				
+				protected CloudFileItem transform(SyncItem syncItem) {
+					return CloudFileItem.transform(syncItem, syncbox);
+				}
+			};
+	}
+	
+	/**
+	 * Downloads the current item from the Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<File>
+		download() 
+	{
+		return download(null);
+	}
+	
+	/**
+	 * Downloads the current item from the Syncbox to a specific path. 
+	 *
+	 * @param toPath	Local file system path to store downloaded file.
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<File>
+		download(
+			final String toPath 
+		) 
+	{
+		if (item.isFolder) {
+			return 
+				new CloudCall<File>() {
+					@Override
+					protected File call() {
+						throw new RuntimeException("Can't download a folder.");
+					}
+				};
+		}
+		
+		SyncFile file = (SyncFile) item;
+		return 
+			new CloudServiceRequestCall<File, File>(
+				SyncFile.download(syncbox.id(), path(), file.storageKey, file.fileHash, true, toPath)
+			) 
+			{
+				protected File transform(File downloadedFile) {
+					return downloadedFile;
+				}
+			}
+			.registerHandler(new CloudCallHandler<File>() {
+				
+				@Override
+				public void onSuccess(File responseData) throws Exception {
+				}
+				
+				@Override
+				public void onError(Exception error) {
+				}
+				
+				@Override
+				public void onStatus(CloudProgressStatus<File> status) {
+					if (syncbox().activityListener() != null) {
+						syncbox().activityListener().fileDownload(syncbox(), CloudFileItem.this, status.completedBytes(), status.completedBytes(), status.totalBytes());
+					}
+				}
+			});
+	}
+	
+	//[end]
+	
+	//[start] Image File handling
+	/**
+	 * Representation of the supported sizes image files can be downloaded for display.
+	 */
+	public static enum CloudFileItemImageSize {
+		SMALL,
+		MEDIUM,
+		LARGE,
+		FULL
+	}
+	
+	/**
+	 * Downloads the current item's thumbnail. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<Bitmap>
+		downloadThumbnail() 
+	{
+		SyncFile file = validateImageItem();
+		
+		return 
+			new CloudServiceRequestCall<Bitmap, Bitmap>(
+				SyncFile.image(syncbox.id(), name(), SyncImageSize.THUMBNAIL, file.storageKey, file.fileHash, true)
+			) 
+			{
+				protected Bitmap transform(Bitmap downloadedImage) {
+					return downloadedImage;
+				}
+			};
+	}
+
+	private SyncFile validateImageItem() {
+		if (item.isFolder) throw new RuntimeException("Can't download a folder.");
+		
+		SyncFile file = (SyncFile) item;
+		if (file.getMediaType() != MediaType.IMAGE) throw new RuntimeException("Can't download non image.");
+		return file;
+	}
+	
+	/**
+	 * Downloads the current item's image at specified size. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<Bitmap>
+		downloadImage(
+			final CloudFileItemImageSize size
+		) 
+	{
+		SyncFile file = validateImageItem();
+		
+		@SuppressWarnings("serial")
+		final Map<CloudFileItemImageSize, SyncImageSize> sizeMap = new LinkedHashMap<CloudFileItemImageSize, SyncImageSize>() {
+			{
+				put(CloudFileItemImageSize.SMALL, SyncImageSize.SMALL);
+				put(CloudFileItemImageSize.MEDIUM, SyncImageSize.MEDIUM);
+				put(CloudFileItemImageSize.LARGE, SyncImageSize.LARGE);
+				put(CloudFileItemImageSize.FULL, SyncImageSize.ORIGINAL);
+			}
+		};
+		
+		return 
+			new CloudServiceRequestCall<Bitmap, Bitmap>(
+				SyncFile.image(syncbox.id(), name(), sizeMap.get(size), file.storageKey, file.fileHash, true)
+			) 
+			{
+				protected Bitmap transform(Bitmap downloadedImage) {
+					return downloadedImage;
+				}
+			}
+			.registerHandler(new CloudCallHandler<Bitmap>() {
+				
+				@Override
+				public void onSuccess(Bitmap responseData) throws Exception {
+				}
+				
+				@Override
+				public void onError(Exception error) {
+				}
+				
+				@Override
+				public void onStatus(CloudProgressStatus<Bitmap> status) {
+					if (syncbox().activityListener() != null) {
+						syncbox().activityListener().fileDownload(syncbox(), CloudFileItem.this, status.completedBytes(), status.completedBytes(), status.totalBytes());
+					}
+				}
+			});
+	}
+	
+	//[end]
+	
+	//[start] Link Sharing
+	
+	/**
+	 * Creates a sharable link to this file item.
+	 *
+	 * @param timeToLive 		The duration (in minutes) that the link should be valid. If not specified the link will be valid indefinitely.
+   	 * @param downloadLimit 	The number of times this file can be downloaded using this link before it expires. If not specified the link will not use download limits.
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	@SuppressWarnings("serial")
+	public CloudCall<CloudFileItemLink>
+		createFileItemLink(
+			final int timeToLive, 
+			final int downloadLimit
+		) 
+	{
+		final int limit = downloadLimit;
+		return 
+			new CloudServiceRequestCall<SyncShare, CloudFileItemLink>(
+				SyncShare.create(new SyncShare() {
+					{
+						syncBoxId = syncbox.id();
+						duration = timeToLive;
+						downloadLimit = limit;
+						objectUid = item.uid;
+					}
+				})
+			) 
+			{
+				protected CloudFileItemLink transform(SyncShare syncShare) {
+					return CloudFileItemLink.transform(syncShare, CloudFileItem.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves the sharable link for this file if one exists.
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudFileItemLink>
+		getFileItemLink() 
+	{
+		return 
+			new CloudServiceRequestCall<SyncShare, CloudFileItemLink>(
+				SyncShare.query(syncbox.id(), item.uid)
+			) 
+			{
+				protected CloudFileItemLink transform(SyncShare syncShare) {
+					return CloudFileItemLink.transform(syncShare, CloudFileItem.this);
+				}
+			};
+	}
+	
+	//[end]
+	
+	//[end]
+	
+	//[start] Transformation methods
+	
+	static CloudFileItem transform(final SyncItem syncItem, final CloudSyncbox syncbox) {
+		return 
+			syncItem == null ?
+				null :
+				new CloudFileItem(syncItem, syncbox);
+	}
+	
+	static List<CloudFileItem> transformList(List<SyncItem> items, final CloudSyncbox syncbox) {
+		return 
+			Lists.transform(
+				items,
+				
+				new Function<SyncItem, CloudFileItem>() {
+					
+					@Override @Nullable
+					public CloudFileItem apply(@Nullable SyncItem item) {
+						return transform(item, syncbox);
+					}
+				}
+			);
+	}
+	
+	static List<CloudFileItem> transformFileList(List<SyncFile> items, final CloudSyncbox syncbox) {
+		return 
+			Lists.transform(
+				items,
+				
+				new Function<SyncFile, CloudFileItem>() {
+					
+					@Override @Nullable
+					public CloudFileItem apply(@Nullable SyncFile item) {
+						return transform(item, syncbox);
+					}
+				}
+			);
+	}
+	
+	//[end]
+
+	@Override
+	public String toString() {
+		return String.format("%s[%s/%s]", super.toString(), uid(), name());
+	}
+	
+	@Override
+	public int hashCode() {
+		String alternatives = StringUtil.fromAlternatives(uid(), path(), name());
+		if(alternatives == null)
+			return 0;
+		return alternatives.hashCode();
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		return hashCode() == obj.hashCode();
+	}
+	
+	//Security through obscurity
+	public class $Private$Accessor$ {
+		public SyncItem syncItem() {
+			return item;
+		}
+	}
+
+	private static final long serialVersionUID = 7261559142492772750L;
+
+}

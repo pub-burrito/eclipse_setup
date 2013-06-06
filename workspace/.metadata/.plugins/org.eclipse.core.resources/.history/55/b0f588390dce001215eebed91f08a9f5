@@ -1,0 +1,8 @@
+package com.cloud.test.sdk.integration;
+
+import cucumber.api.android.RunWithCucumber;
+
+@RunWith(Cucumber.Class)
+public class RunCukes {
+
+}

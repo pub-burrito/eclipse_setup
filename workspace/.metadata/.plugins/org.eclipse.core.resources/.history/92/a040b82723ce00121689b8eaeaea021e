@@ -1,0 +1,26 @@
+﻿@1off
+Feature: 1Off_add_operations
+
+Background: 
+	#Given I Use SyncBox With ID 6889
+	Given I have a Syncbox
+
+@1Off_Add
+Scenario: Use 1Off Add File Method
+	Given I Add File "/someFileToAdd.file"
+	When I wait 10 Seconds
+	Then The File "/someFileToAdd.file" Should Exist In The SyncBox
+
+@1Off_Add
+Scenario: Use 1Off Add File(s) Method
+	Given I Add the Files "/OneFileToAdd.file|/TwoFileToAdd.file|/ThreeFileToAdd.file|/FourFileToAdd.file"
+	When I wait 10 Seconds
+	Then The File "/OneFileToAdd.file" Should Exist In The SyncBox
+
+
+@1Off_Add
+Scenario: Use 1Off Add Folder Method
+	Given I Add the Directories "/AddMeWith1Off/"
+	When I wait 5 Seconds
+	Then The Directory "/AddMeWith1Off/" Should Exist In The SyncBox
+

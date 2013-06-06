@@ -1,0 +1,4 @@
+target=android-9
+android.library=false
+manifestmerger.enabled=true
+android.library.reference.1=libs/cucumber-jvm/android

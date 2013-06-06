@@ -1,0 +1,19 @@
+package com.cloud.test.sdk.integration.stepdef;
+
+import com.cloud.test.sdk.integration.CloudValues;
+import com.cloud.test.sdk.integration.CucumberActivity;
+
+import android.test.ActivityInstrumentationTestCase2;
+
+public class BaseStepDef extends ActivityInstrumentationTestCase2<CucumberActivity>{
+
+	public BaseStepDef(Class<CucumberActivity> activityClass) {
+		super(activityClass);
+		CloudValues.instnace(getActivity());
+	}
+	
+	protected CloudValues values(){
+		return CloudValues.instnace(getActivity());
+	}
+
+}

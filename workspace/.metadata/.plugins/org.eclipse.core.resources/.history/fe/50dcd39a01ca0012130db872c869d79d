@@ -1,0 +1,44 @@
+Uploading a CloudFileItem to a CloudSyncbox
+
+ Adding content to a CloudSyncbox can be done by uploading multiple files or a single file.
+
+
+* Add a single file.
+
++---+
+cloudSyncbox
+	.addFile(fileToUpload.getAbsolutePath(), toPath)
+	.handle(new CloudCallHandler<CloudFileItem>() {
+
+		@Override
+		public void onError(Exception error) {
+			//Cloud not upload file
+		}
+
+		@Override
+		public void onSuccess(CloudFileItem cloudFileItem) throws Exception {
+			//use uploaded file
+		}
+	});
++---+
+
+* Adding multiple files
+ 
++---+
+
+cloudSyncbox
+	.addFiles(Arrays.asList(pathOfFile1,pathOfFile2,pathOfFile3), currentFileFolder.path())
+	.handle(new CloudCallHandler<List<CloudFileItem>>() {
+		
+		@Override
+		public void onError(Exception error) {
+			//Could not upload files	
+		}
+		
+		@Override
+		public void onSuccess(List<CloudFileItem> cloudFileItems)
+				throws Exception {
+			//use uploaded files
+		}
+	});
++---+

@@ -1,0 +1,268 @@
+package com.cloud.test.sdk.mocked;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.http.HttpStatus;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+
+import roboguice.inject.InjectResource;
+import roboguice.util.Ln;
+
+import com.cloud.framework.service.model.CloudServiceModel.PlatformServiceEndpoint;
+import com.cloud.framework.threading.AsyncRunnable;
+import com.cloud.framework.threading.AsyncRunnable.AsyncExecutionCallback;
+import com.cloud.sdk.service.auth.CloudCredentials;
+import com.cloud.sdk.service.auth.CloudCredentialsStatusListener;
+import com.cloud.sdk.service.sync.CloudFileItem;
+import com.cloud.sdk.service.sync.CloudSyncbox;
+import com.cloud.sdk.threading.CloudCall.CloudProgressStatus;
+import com.cloud.sdk.threading.CloudCallHandler;
+import com.cloud.test.R;
+import com.cloud.test.common.AbstractCloudMockedTest;
+import com.cloud.test.framework.mocked.util.IgnitedHttpMockHelper.HttpResponseAnswer;
+
+/**
+ * <!--
+ * CloudCredentialsTest.java
+ * -->
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date Jan 25, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+
+public class CloudCredentialsTest extends AbstractCloudMockedTest {
+
+	@InjectResource(R.string.test_service_json_v1_auth_session_create) private String testCreateJSON;
+	@InjectResource(R.string.test_service_json_v1_error_response_single) private String testExpiredSessionListenterUnAuthJSON;
+	@InjectResource(R.string.test_service_json_v1_sync_plan_list) private String testExpiredSessionSyncPlanListenter;
+	@InjectResource(R.string.test_service_json_v1_auth_session_list) private String testListJSON;
+	@InjectResource(R.string.test_service_json_v1_auth_session_delete) private String testDeleteJSON;
+
+	@InjectResource(R.string.test_service_sample_auth_session_key) private String TEST_SESSION_KEY;
+	@InjectResource(R.string.test_service_sample_auth_session_token) private String TEST_SESSION_TOKEN;
+	@InjectResource(R.string.test_service_sample_auth_session_delete_message) private String TEST_DELETE_MESSAGE;
+	
+	private static volatile boolean listenerHasBeenFired;
+	
+	@Test
+	public void testCreate() {
+		
+		//simulating a fake response for service call
+		simulateResponse(PlatformServiceEndpoint.AUTH_SESSION_CREATE, testCreateJSON);
+		
+		new CloudCredentials()
+			.createSession(1)
+			.get(new CloudCallHandler<CloudCredentials>() {
+				
+				@Override
+				public void onSuccess(CloudCredentials session) throws Exception {
+					Ln.i("Session: %s", session);
+					assertThat(session, is(not(nullValue())));
+					
+					Ln.i("Token: %s", session.token());
+					assertThat(session.token(), is(not(nullValue())));
+					assertThat(session.token(), is(equalTo(TEST_SESSION_TOKEN)));
+				}
+				
+				@Override
+				public void onError(Exception error) {
+					throw new RuntimeException(error);
+				}
+			});
+	}
+	
+	@Test
+	public void testCreateWithCustomKeyAndSecret(){
+		
+		CloudCredentials credential = new CloudCredentials("key", "secret");
+		
+		assertThat(credential.key(), is(equalTo("key")));
+		assertThat(credential.secret(), is(equalTo("secret")));
+		assertThat(credential.token(), is(equalTo("token")));
+	}
+	
+	@Test
+	public void testList() {
+		
+		//simulating a fake response for service call
+		simulateResponse(PlatformServiceEndpoint.AUTH_SESSION_LIST, testListJSON);
+		
+		new CloudCredentials()
+			.list()
+			.get(new CloudCallHandler<List<CloudCredentials>>() {
+				
+				@Override
+				public void onSuccess(List<CloudCredentials> sessions) throws Exception {
+					
+					Ln.i("Sessions: %s", sessions);
+					assertThat(sessions.size(), is(equalTo(3)));
+					
+					assertThat(sessions.get(0), is(not(nullValue())));
+					assertThat(sessions.get(1), is(not(nullValue())));
+					assertThat(sessions.get(2), is(not(nullValue())));
+					
+					assertThat(sessions.get(0).syncboxIds().get(0), is(equalTo(130l)));
+					assertThat(sessions.get(1).syncboxIds().get(0), is(equalTo(140l)));
+					assertThat(sessions.get(2).syncboxIds().get(0), is(equalTo(150l)));
+				}
+				
+				@Override
+				public void onError(Exception error) {
+					throw new RuntimeException(error);
+				}
+			});
+	}
+	
+	@Test
+	public void testDelete() {
+		
+		//simulating a fake response for service call
+		simulateResponse(PlatformServiceEndpoint.AUTH_SESSION_DELETE, testDeleteJSON);
+		
+		new CloudCredentials()
+			.delete(TEST_SESSION_KEY)
+			.get(new CloudCallHandler<Void>() {
+				
+				@Override
+				public void onSuccess(Void responseData)
+						throws Exception {
+					
+					assertThat(responseData, is(not(nullValue())));
+				}
+				
+				@Override
+				public void onError(Exception error) {
+					throw new RuntimeException(error);
+				}
+			});
+	}
+	
+	
+	@Test
+	public void testExpiredSessionListenter(){
+		//simulating a fake response for service call for creating a session
+		simulateResponse(PlatformServiceEndpoint.SYNC_PLAN_LIST, new HttpResponseAnswer<String>() {
+
+			@Override
+			public String answer(InvocationOnMock invocation) throws Throwable {
+				return testExpiredSessionListenterUnAuthJSON;
+			}
+			
+			@Override
+			public int statusCode() {
+				return HttpStatus.SC_UNAUTHORIZED;
+			}
+		});
+		
+		listenerHasBeenFired = false;
+		
+		new CloudCredentials()
+			//listen to the Credential expired status
+			.listen(new CloudCredentialsStatusListener() {
+				@Override
+				public void onSessionCredentialsExpired(
+						CloudCredentials credentials) {
+					listenerHasBeenFired = true;
+					stopWaitingFor(listenerHasBeenFired);
+	
+					assertTrue(true);
+				}
+			})
+			.createSession(1)
+			.get(new CloudCallHandler<CloudCredentials>() {
+
+					@Override
+					public void onSuccess(CloudCredentials responseData)
+							throws Exception {
+						//Create a new Syncbox
+						new CloudSyncbox(1)
+							.credentials(responseData) 
+							.root()
+							
+							.get(new CloudCallHandler<CloudFileItem>() {
+
+								@Override
+								public void onSuccess(CloudFileItem responseData)
+										throws Exception {
+									fail("Syncbox should not succeed on retrieve items");
+								}
+
+								@Override
+								public void onError(Exception error) {
+									
+									if(!listenerHasBeenFired){
+										waitFor(listenerHasBeenFired, ONE_SEC * 10);
+										fail("Credential listener was not fired within 10 seconds of Syncbox's onError");
+									}
+								}
+							}
+							);	
+					}
+
+					@Override
+					public void onError(Exception error) {
+						
+					}
+				});
+	}
+
+	@Test
+	public void testCallbacksCalledOnce() {
+		
+		final Map<AsyncExecutionCallback, Integer> callbacks = new LinkedHashMap<AsyncRunnable.AsyncExecutionCallback, Integer>();
+		
+		//simulating a fake response for service call
+		simulateResponse(PlatformServiceEndpoint.AUTH_SESSION_CREATE, testCreateJSON);
+		
+		new CloudCredentials()
+			.createSession(1)
+			.get(new CloudCallHandler<CloudCredentials>() {
+				
+				private void increment(AsyncExecutionCallback callback) {
+					int current = callbacks.containsKey(callback) ? callbacks.get(callback) : 0;
+					
+					callbacks.put(callback, current + 1);
+				}
+				
+				@Override
+				public void onStart() {
+					increment(AsyncExecutionCallback.START);
+				}
+				
+				@Override
+				public void onStatus(CloudProgressStatus<CloudCredentials> status) {
+					increment(AsyncExecutionCallback.STATUS);
+				}
+				
+				@Override
+				public void onSuccess(CloudCredentials session) throws Exception {
+					increment(AsyncExecutionCallback.SUCCESS);
+				}
+				
+				@Override
+				public void onError(Exception error) {
+					increment(AsyncExecutionCallback.ERROR);
+				}
+			});
+		
+		for (Map.Entry<AsyncExecutionCallback, Integer> callback : callbacks.entrySet()) {
+			Ln.i("Callback %s count: %d", callback.getKey(), callback.getValue());
+			
+			assertThat(callback.getValue(), is(equalTo(1)));
+		}
+	}
+	
+}

@@ -1,0 +1,2117 @@
+package com.cloud.sdk.service.sync;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nullable;
+
+import roboguice.util.Ln;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.text.TextUtils;
+
+import com.cloud.framework.annotations.ReflectionUtil;
+import com.cloud.framework.config.CloudApplication;
+import com.cloud.framework.net.CloudServiceRequest;
+import com.cloud.framework.net.CloudServiceResponse;
+import com.cloud.framework.net.CloudServiceResponseHandler;
+import com.cloud.framework.net.CloudUploadRequest;
+import com.cloud.framework.net.CloudUploadRequest.CloudFileUploadHandler;
+import com.cloud.framework.net.CloudUploadRequest.CloudUploadHandler.UploadProgressStatus;
+import com.cloud.framework.net.cache.CloudCacheParams;
+import com.cloud.framework.net.cache.CloudDownloadCache;
+import com.cloud.framework.service.model.CloudServiceModel.PageParams;
+import com.cloud.framework.service.model.CloudServiceModel.PagedList;
+import com.cloud.framework.service.model.CloudServiceModel.PlatformServiceEndpoint;
+import com.cloud.framework.service.model.CloudServiceModel.ServiceEndpoint;
+import com.cloud.framework.service.model.sync.CloudSync;
+import com.cloud.framework.service.model.sync.SyncBox;
+import com.cloud.framework.service.model.sync.SyncBox.SyncBoxQuota;
+import com.cloud.framework.service.model.sync.SyncDelta;
+import com.cloud.framework.service.model.sync.SyncEvent;
+import com.cloud.framework.service.model.sync.SyncEvent.SyncEventStatus;
+import com.cloud.framework.service.model.sync.SyncFile;
+import com.cloud.framework.service.model.sync.SyncFolder;
+import com.cloud.framework.service.model.sync.SyncItem;
+import com.cloud.framework.service.model.sync.cache.SyncDeltaCache;
+import com.cloud.framework.service.process.sync.CloudSyncContext;
+import com.cloud.framework.service.process.sync.CloudSyncEngine;
+import com.cloud.framework.service.process.sync.CloudSyncEngine.SyncEngineState;
+import com.cloud.framework.service.process.sync.CloudSyncEngineListener;
+import com.cloud.framework.sysinfo.DeviceInfo;
+import com.cloud.framework.util.StringUtil;
+import com.cloud.sdk.service.auth.CloudCredentials;
+import com.cloud.sdk.service.auth.CloudCredentialsStatusListener;
+import com.cloud.sdk.service.sync.CloudSyncboxActivityListener.CloudFileStatus;
+import com.cloud.sdk.service.util.CloudPagedList;
+import com.cloud.sdk.threading.CloudCall;
+import com.cloud.sdk.threading.CloudCall.CloudProgressStatus;
+import com.cloud.sdk.threading.CloudCall.CloudServiceRequestCall;
+import com.cloud.sdk.threading.CloudCall.CloudVoidServiceRequestCall;
+import com.cloud.sdk.threading.CloudCallHandler;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+/**
+ * <!--
+ * CloudSyncbox.java
+ * -->
+ * Provides an Object Oriented wrapper used to manipulate Syncboxes within your Cloud domain. This class enables the means to create, delete, update and query contents of a Syncboxes.
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date May 13, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+
+public class CloudSyncbox implements Serializable {
+
+	public static final String CATEGORY_STATUS = CloudSyncbox.class.getName() + ".categories.STATUS";
+	public static final String CATEGORY_ACTIVITY = CloudSyncbox.class.getName() + ".categories.ACTVITIY";
+	
+	public static final String ACTION_START = CloudSyncbox.class.getName() + ".actions.START";
+	public static final String ACTION_STOP = CloudSyncbox.class.getName() + ".actions.STOP";
+	public static final String ACTION_PAUSE = CloudSyncbox.class.getName() + ".actions.PAUSE";
+	public static final String ACTION_RESUME = CloudSyncbox.class.getName() + ".actions.RESUME";
+	
+	public static final String ACTION_SYNC_START = CloudSyncbox.class.getName() + ".actions.SYNC_START";
+	public static final String ACTION_SYNC_END 	 = CloudSyncbox.class.getName() + ".actions.SYNC_END";
+	public static final String ACTION_SYNC_ERROR = CloudSyncbox.class.getName() + ".actions.SYNC_ERROR";
+	public static final String ACTION_SYNC_CHANGES = CloudSyncbox.class.getName() + ".actions.SYNC_CHANGES";
+	public static final String ACTION_SYNC_CONNECTED = CloudSyncbox.class.getName() + ".actions.SYNC_CHANGES";
+	public static final String ACTION_SYNC_DISCONNECTED = CloudSyncbox.class.getName() + ".actions.SYNC_CHANGES";
+	
+	private static Map<Integer, CloudSyncbox> syncboxes = new ConcurrentHashMap<Integer, CloudSyncbox>();
+	
+	//[start] Properties
+	
+	private SyncBox syncBox;
+	volatile private CloudSyncEngine engine;
+	private CloudCredentials credentials;
+	private int hashCode = -1;
+	
+	private String path;
+	
+	//[end]
+	
+	//[start] Properties accessors
+
+	/**
+	 * Gets the fully qualified path for the CloudSyncbox
+	 * @return the fully qualified path of the CloudSyncbox
+	 */
+	public String path() {
+		String localCachePath =
+			CloudDownloadCache.instance.getFileForKey(
+				new CloudCacheParams() {
+					{
+						syncBoxId = syncBox.id;
+						localPath = path;
+					}
+				}
+			).getAbsolutePath();
+			
+//		//last directory
+		if (TextUtils.isEmpty(path) || path.endsWith("/"))
+			localCachePath = StringUtil.slash(localCachePath);
+		
+		return localCachePath;
+	}
+	
+	/**
+	 * Gets this CloudSyncbox's ID
+	 * @return SyncBbx ID, numeric identifier of this synchronization container.
+	 */
+	public Long id() {
+		return syncBox.id;
+	}
+	
+	/**
+	 * Gets the storage plan ID associated with this CloudSyncbox. See {@link CloudStoragePlan}}
+	 * @return Storage Plan ID, numeric identifier of the plan to be used for this Syncbox
+	 */
+	public Long storagePlanId() {
+		return syncBox.planId;
+	}
+	
+	/**
+	 * Gets the user provided name of this CloudSyncbox
+	 * @return Name provided during creation of CloudSyncbox to make it easier to differentiate and identify it.
+	 */
+	public String friendlyName() {
+		return syncBox.friendlyName;
+	}
+	
+	/**
+	 * Gets the Byte representation of the disk space that is allocated to this CloudSyncbox
+	 * @return Byte representation of how much disk space is allocated to this CloudSyncbox.
+	 */
+	public Long storageQuota() {
+		return syncBox.storageQuota;
+	}
+	
+	/**
+	 * Gets the date of creation of this CloudSyncbox
+	 * @return Timestamp when Syncbox was originally created.
+	 */
+	public Date createdDate() {
+		return syncBox.createdDate;
+	}
+	
+	/**
+	 * Gets the {@link CloudCredentials} associated with this CloudSyncbox
+	 * @return CloudCredential object for the CloudSyncbox
+	 */
+	public CloudCredentials credentials() {
+		return credentials;
+	}
+
+	/**
+	 * Sets the {@link CloudCredentials} for this CloudSyncbox
+	 * @param credentials - the CloudCredentials to apply to this CloudSyncbox
+	 * @return the CloudSyncbox object that was modified
+	 */
+	public CloudSyncbox credentials(CloudCredentials credentials) {
+		this.credentials = credentials; 
+		
+		syncBox.credentials(credentials.new $Private$Accessor$().credentials());
+		
+		syncboxes.get(hashCode()).credentials = credentials;
+		
+		return this;
+	}
+
+	/**
+	 * Provides a breakdown of the number of bytes that represent the current limits a Syncbox is restricted to.
+	 */
+	public static class CloudSyncboxUsage {
+		private SyncBoxQuota quota;
+		
+		private CloudSyncboxUsage(SyncBoxQuota quota) {
+			this.quota = quota;
+		}
+		
+		public long storageQuota() {
+			return quota.limit;
+		}
+		
+		public long quotaUsage() {
+			return quota.local;
+		}
+	}
+	
+	//[end]
+	
+	//[start] Constructors
+	
+	private CloudSyncbox(SyncBox syncBox) {
+
+		this.syncBox = syncBox;
+	
+		initEngine();
+		
+		syncboxes.put(hashCode(), this);
+
+	}
+	
+	/**
+	 * Initializes a new CloudSyncbox with the supplied syncboxId, using pre-configured application credentials.
+ 	 *
+	 * @param syncboxId		ID of the Syncbox this instance represents.
+	 */
+	public CloudSyncbox(final long syncboxId) {
+		this(syncboxId, new CloudCredentials());
+	}
+	
+	/**
+	 * Initializes a new CloudSyncbox with the supplied syncboxId and credentials.
+ 	 *
+	 * @param syncboxId		ID of the Syncbox this instance represents.
+	 * @param credentials	A {@link CloudCredentials} instance containing the keys necessary to authenticate access to this Syncbox.
+	 */
+	public CloudSyncbox(final long syncboxId, final CloudCredentials credentials) {
+		this(syncboxId, credentials, null);
+	}
+	
+	/**
+	 * Initializes a new CloudSyncbox with the supplied syncboxId and credentials.
+	 *
+	 * @param syncboxId		ID of the Syncbox this instance represents.
+	 * @param credentials	A {@link CloudCredentials} instance containing the keys necessary to authenticate access to this Syncbox.
+	 * @param path			Optional local file system path where files should be stored when downloaded.
+	 */
+	@SuppressWarnings("serial")
+	public CloudSyncbox(final long syncboxId, final CloudCredentials credentials, String path) {
+		
+		syncBox = new SyncBox() {
+			{
+				id = syncboxId;
+			}
+		};
+		
+		syncboxes.put(hashCode(), this);
+		
+		credentials(credentials);
+		
+		this.path = path;  
+		
+		initEngine();
+		
+	}
+	
+	//FIXME: For some reason this is called on the main thread and executing a call for listing syncboxes although the transformation that triggers this is executed on the onSuccess callback that's set to run on the background
+	private void initEngine() {
+		engine = CloudSyncEngine.init(CloudApplication.getContext(), syncBox);
+		
+		engine.listen(new CloudSyncEngineListener() {
+			
+			@Override
+			public void onStart(CloudSyncEngine syncEngine) {
+				if (liveSyncStatusListener != null) {
+					liveSyncStatusListener.started(CloudSyncbox.this);
+				}
+			}
+			
+			@Override
+			public void onStop(CloudSyncEngine syncEngine) {
+				if (liveSyncStatusListener != null) {
+					liveSyncStatusListener.stopped(CloudSyncbox.this);
+				}
+			}
+			
+			@Override
+			public void onPause(CloudSyncEngine syncEngine) {
+				if (liveSyncStatusListener != null) {
+					liveSyncStatusListener.paused(CloudSyncbox.this);
+				}
+			}
+			
+			@Override
+			public void onResume(CloudSyncEngine syncEngine) {
+				if (liveSyncStatusListener != null) {
+					liveSyncStatusListener.resumed(CloudSyncbox.this);
+				}
+			}
+			
+			@Override
+			public void onSyncStart(CloudSyncEngine syncEngine) {
+				if (liveSyncStatusListener != null) {
+					liveSyncStatusListener.syncStart(CloudSyncbox.this);
+				}
+			}
+			
+			@Override
+			public void onSyncError(CloudSyncEngine syncEngine, Exception error) {
+				
+				if (liveSyncStatusListener != null) {
+					if (CloudCredentialsStatusListener.isCredentialExpiredError(error)) {
+						credentials().expired();
+					} else {
+						liveSyncStatusListener.error(CloudSyncbox.this, error);
+					}
+				}
+				
+				stopLiveSync();
+			}
+			
+			@Override
+			public void onSyncEnd(CloudSyncEngine syncEngine, Map<String, String> info) {
+				if (liveSyncStatusListener != null) {
+					liveSyncStatusListener.syncEnd(CloudSyncbox.this, info);
+				}
+			}
+			
+			@Override
+			public void onPushConnect(CloudSyncEngine syncEngine) {
+				if (onDemandStatusListener != null) {
+					onDemandStatusListener.connected(CloudSyncbox.this);
+				}
+			}
+			
+			@Override
+			public void onPushDisconnect(CloudSyncEngine syncEngine) {
+				if (onDemandStatusListener != null) {
+					onDemandStatusListener.disconnected(CloudSyncbox.this);
+				}
+			}
+			
+			@Override
+			public void onPushError(CloudSyncEngine syncEngine, Exception error) {
+				if (onDemandStatusListener != null) {
+					onDemandStatusListener.error(CloudSyncbox.this, error);
+				}
+			}
+			
+			@Override
+			public void onChangeDetected(CloudSyncEngine syncEngine) {
+				if (onDemandStatusListener != null) {
+					onDemandStatusListener.changesDetected(CloudSyncbox.this);
+				}
+			}
+			
+			@Override
+			public void onFileChange(CloudSyncEngine syncEngine, CloudSyncFileStatus status, Map<String, String> info) {
+				if (activityListener != null) {
+					activityListener.fileChange(CloudSyncbox.this, CloudFileStatus.from(status), info);
+				}
+			}
+			
+			@Override
+			public void onFileUpload(CloudSyncEngine syncEngine, SyncItem fileItem, int bytesUploaded, int totalBytesUploaded, int totalBytesExpected) {
+				if (activityListener != null) {
+					activityListener.fileUpload(CloudSyncbox.this, CloudFileItem.transform(fileItem, CloudSyncbox.this), totalBytesUploaded, bytesUploaded, totalBytesExpected);
+				}
+			}
+			
+			@Override
+			public void onFileDownload(CloudSyncEngine syncEngine, SyncItem fileItem, int bytesDownloaded, int totalBytesDownloaded, int totalBytesExpected) {
+				if (activityListener != null) {
+					activityListener.fileDownload(CloudSyncbox.this, CloudFileItem.transform(fileItem, CloudSyncbox.this), totalBytesDownloaded, bytesDownloaded, totalBytesExpected);
+				}
+			}
+		});
+		
+		try {
+			registerBroadcastReciever();
+			engine.getSyncContext().registerReceiver(engineReceiver, engineFilter);
+		} catch (Exception e) {
+			Ln.e(e, "Error registering receiver");
+		}
+	}
+	
+	/*
+	 * SyncEngine receiver, receives notifications and pass them along translated
+	 */
+	private IntentFilter engineFilter;
+
+	private BroadcastReceiver engineReceiver;
+	
+	private void registerBroadcastReciever(){
+		engineFilter = new IntentFilter() {
+			{
+				addAction(CloudSyncEngine.ACTION_START);
+				addAction(CloudSyncEngine.ACTION_STOP);
+				addAction(CloudSyncEngine.ACTION_PAUSE);
+				addAction(CloudSyncEngine.ACTION_RESUME);
+				addAction(CloudSyncEngine.ACTION_SYNC_START);
+				addAction(CloudSyncEngine.ACTION_SYNC_ERROR);
+				addAction(CloudSyncEngine.ACTION_SYNC_END);
+				addAction(CloudSyncEngine.ACTION_SYNC_PUSH_NOTIFICATION);
+				addAction(CloudSyncEngine.ACTION_SYNC_PUSH_CONNECT);
+				addAction(CloudSyncEngine.ACTION_SYNC_PUSH_DISCONNECT);
+				addAction(CloudSyncEngine.ACTION_SYNC_PUSH_ERROR);
+				
+				addCategory(CloudSyncEngine.CATEGORY_ENGINE);
+				addCategory(CloudSyncEngine.CATEGORY_SYNC);
+				addCategory(CloudSyncEngine.CATEGORY_PUSH);
+			}
+		};
+		
+		engineReceiver = new BroadcastReceiver() {
+				
+				@SuppressWarnings("serial")
+				private final Map<String, String> engineMap = new LinkedHashMap<String, String>() {
+					{
+						put(CloudSyncEngine.ACTION_START, CloudSyncbox.ACTION_START);
+						put(CloudSyncEngine.ACTION_STOP, CloudSyncbox.ACTION_STOP);
+						put(CloudSyncEngine.ACTION_PAUSE, CloudSyncbox.ACTION_PAUSE);
+						put(CloudSyncEngine.ACTION_RESUME, CloudSyncbox.ACTION_RESUME);
+						put(CloudSyncEngine.ACTION_SYNC_START, CloudSyncbox.ACTION_SYNC_START);
+						put(CloudSyncEngine.ACTION_SYNC_ERROR, CloudSyncbox.ACTION_SYNC_ERROR);
+						put(CloudSyncEngine.ACTION_SYNC_END, CloudSyncbox.ACTION_SYNC_END);
+						put(CloudSyncEngine.ACTION_SYNC_PUSH_NOTIFICATION, CloudSyncbox.ACTION_SYNC_CHANGES);
+						put(CloudSyncEngine.ACTION_SYNC_PUSH_CONNECT, CloudSyncbox.ACTION_SYNC_CONNECTED);
+						put(CloudSyncEngine.ACTION_SYNC_PUSH_DISCONNECT, CloudSyncbox.ACTION_SYNC_DISCONNECTED);
+						
+						put(CloudSyncEngine.CATEGORY_ENGINE, CloudSyncbox.CATEGORY_STATUS);
+						put(CloudSyncEngine.CATEGORY_SYNC, CloudSyncbox.CATEGORY_ACTIVITY);
+						put(CloudSyncEngine.CATEGORY_PUSH, CloudSyncbox.CATEGORY_STATUS);
+					}
+				};
+				
+				//TESTIT: https://www.pivotaltracker.com/story/show/50763731
+				@Override
+				public void onReceive(Context context, Intent intent) {
+					Ln.d("< Received: %s", intent);
+
+					String syncboxAction = engineMap.get(intent.getAction());
+					
+					Set<String> categories = intent.getCategories();
+					
+					String syncboxCategory =
+							!categories.isEmpty() ?
+								engineMap.get(categories.iterator().next()) :
+								null;
+								
+					//rebroadcast intent with mapped action/category
+					if (syncboxAction != null) { 
+						context()
+							.sendBroadcast(
+								new Intent(intent)
+									.setAction(syncboxAction)
+									.addCategory(syncboxCategory)
+							);
+					}
+				}
+				
+			};
+	}
+	
+	//[end]
+	
+	//[start] Listener/Delegate setters
+	
+	/**
+	 * Provides developers access to a {@link CloudSyncbox} specific {@link Context} where {@link Intent} instances are broadcasted 
+	 * with messages that may be relevant to various states and activity related to this container.
+	 * 
+	 * @return {@link Context} to register filtered broadcast receivers (only triggered if a message is sent for this {@link CloudSyncbox}) 
+	 * 			via standard {@link Context#registerReceiver(BroadcastReceiver, IntentFilter)}
+	 */
+	public Context context() {
+		return CloudSyncContext.getInstance(syncBox);
+	}
+	
+	private volatile CloudSyncboxLiveSyncStatusListener liveSyncStatusListener;
+	private volatile CloudSyncboxOnDemandStatusListener onDemandStatusListener;
+	private volatile CloudSyncboxActivityListener activityListener;
+	
+	//TESTIT https://www.pivotaltracker.com/story/show/50763371
+	public CloudSyncbox listen(CloudSyncboxLiveSyncStatusListener statusListener) {
+		this.liveSyncStatusListener = statusListener;
+		
+		syncboxes.get(hashCode()).liveSyncStatusListener = statusListener;
+		
+		return this;
+	}
+	
+	//TESTIT https://www.pivotaltracker.com/story/show/50763635
+	public CloudSyncbox listen(CloudSyncboxOnDemandStatusListener statusListener) {
+		this.onDemandStatusListener = statusListener;
+		
+		if (statusListener != null) {
+			engine.startNotificationServices();
+		} else {
+			engine.stop();
+		}
+		
+		syncboxes.get(hashCode()).onDemandStatusListener = statusListener;
+		
+		return this;
+	}
+	
+	public CloudSyncbox listen(CloudSyncboxActivityListener activityListener) {
+		this.activityListener = activityListener;
+		
+		syncboxes.get(hashCode()).activityListener = activityListener;
+		
+		return this;
+	}
+	
+	CloudSyncboxActivityListener activityListener() {
+		return activityListener;
+	}
+	
+	//[end]
+	
+	//[start] Action methods
+	
+	//[start] Service Lifecycle methods
+	
+	public void startLiveSync() {
+		engine.start();
+	}
+
+	public void stopLiveSync() {
+		engine.stop();
+	}
+	
+	public boolean isLiveSyncStarted() {
+		return engine.state() == SyncEngineState.STARTED;
+	}
+	
+	//[end] Service Lifecycle methods
+	
+	//[start] Management methods
+	
+	/**
+	 * Creates a new Syncbox within your Cloud domain.
+	 * 
+	 * @param plan 			A {@link CloudStoragePlan} object containing the information about the storage plan used to assign quota and availability to a Syncbox at creation time. If {@code null}, a Syncbox will be created with the default plan.
+	 * @param friendlyName 	An optional friendly name for the Syncbox being created. If {@code null}, the default name is used.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public static CloudCall<CloudSyncbox> 
+		create(
+			final CloudStoragePlan plan, 
+			final String friendlyName
+		)
+	{
+		return
+			new CloudServiceRequestCall<SyncBox, CloudSyncbox>(
+				SyncBox.create(friendlyName, plan != null ? plan.id() : null)
+			) 
+			{
+				@Override
+				protected CloudSyncbox transform(SyncBox syncBox) {
+					return CloudSyncbox.transform(syncBox).credentials(this.credentials);
+				}
+			};
+	}
+	
+	/**
+	 * Creates a new Syncbox within your Cloud domain.
+	 * 
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public static CloudCall<CloudSyncbox>
+		create()
+	{
+		return
+				new CloudServiceRequestCall<SyncBox, CloudSyncbox>(
+					SyncBox.create()
+				) 
+				{
+					@Override
+					protected CloudSyncbox transform(SyncBox syncBox) {
+						return CloudSyncbox.transform(syncBox).credentials(this.credentials);
+					}
+				};
+	}
+	
+	/**
+	 * Requests the Syncbox to be updated with the provided storage plan.
+	 * 
+	 * @param plan 			A {@link CloudStoragePlan} object containing the information about the storage plan used to assign quota and availability to a Syncbox at creation time. If {@code null}, a Syncbox will be created with the default plan.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public CloudCall<CloudSyncbox> 
+		updateStoragePlan(
+			final CloudStoragePlan plan
+		)
+	{
+		return
+			new CloudServiceRequestCall<SyncBox, CloudSyncbox>(
+				SyncBox.updatePlan(syncBox.id, plan.id())
+			) 
+			{
+				@Override
+				protected CloudSyncbox transform(SyncBox syncBox) {
+					
+					CloudSyncbox.this.syncBox.planId = syncBox.planId;
+					CloudSyncbox.this.syncBox.plan = syncBox.plan;
+					
+					return CloudSyncbox.this;
+				}
+			};
+	}
+	
+	/**
+	 * Requests the Syncbox to be updated with the provided friendly name.
+	 * 
+	 * @param name 	A friendly name for the Syncbox being updated.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public CloudCall<CloudSyncbox> 
+		updateFriendlyName(
+			final String name
+		)
+	{
+		return
+			new CloudServiceRequestCall<SyncBox, CloudSyncbox>(
+				SyncBox.update(syncBox.id, name)
+			) 
+			{
+				@Override
+				protected CloudSyncbox transform(SyncBox syncBox) {
+					
+					CloudSyncbox.this.syncBox.friendlyName = name;
+					
+					return CloudSyncbox.this;
+				}
+			};
+	}
+	
+	/**
+	 * Lists all Syncboxes for the application.
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public static CloudCall<List<CloudSyncbox>>
+		list() 
+	{
+		return 
+			new CloudServiceRequestCall<PagedList<SyncBox>, List<CloudSyncbox>>(
+				SyncBox.list()
+			) 
+			{
+				protected List<CloudSyncbox> transform(PagedList<SyncBox> syncBoxes) {
+					return transformList(syncBoxes, this.credentials);
+				}
+			};
+	}
+	
+	/**
+	 * Lists all Syncboxes for the application given the specific paging parameters.
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call as well as {@link CloudPagedList} for details on handling paging information.
+	 */
+	public static CloudCall<CloudPagedList<CloudSyncbox>>
+		list(final int pageNumber, int itemsPerPage) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncBox>, CloudPagedList<CloudSyncbox>>(
+				SyncBox.list(null, true, new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudSyncbox> transform(PagedList<SyncBox> syncBoxes) {
+					return transformPagedList(this, syncBoxes, credentials);
+				}
+			};
+	}
+	
+	/**
+	 * Updates the Syncbox with the current status information from the Cloud.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public CloudCall<CloudSyncbox> 
+		refresh()
+	{
+		return
+			new CloudServiceRequestCall<SyncBox, CloudSyncbox>(
+				SyncBox.status(syncBox.id)
+			) 
+			{
+				@Override
+				protected CloudSyncbox transform(SyncBox syncBox) {
+					
+					//refresh status
+					CloudSyncbox.this.syncBox = syncBox;
+					
+					syncboxes.get(CloudSyncbox.this.hashCode()).syncBox = syncBox;
+					
+					return CloudSyncbox.this;
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves the current quota usage and total quota of the current Syncbox from the Cloud servers. 
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public CloudCall<CloudSyncboxUsage> 
+		dataUsage()
+	{
+		return
+			new CloudServiceRequestCall<SyncBoxQuota, CloudSyncboxUsage>(
+				SyncBox.usage(syncBox.id)
+			) 
+			{
+				@Override
+				protected CloudSyncboxUsage transform(SyncBoxQuota quota) {
+					syncBox.storageQuota = quota.limit;
+					
+					return new CloudSyncboxUsage(quota);
+				}
+			};
+	}
+	
+	/**
+	 * Deletes a new Syncbox from your Cloud domain.
+	 * 
+	 * @param id 			ID of the Syncbox this session is entitled to call APIs for.
+	 * 
+	 * @return See: {@link CloudCall} for details on handling the result of the call.
+	 */
+	public static CloudCall<Void> 
+		delete(
+			final long id
+		)
+	{
+		return
+			new CloudVoidServiceRequestCall(
+				SyncBox.delete(id)
+			);
+	}
+	
+	//[end] Management methods
+	
+	//[start] Syncbox Item Operations
+	
+	/**
+	 * Adds a file to this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudFileItem>
+		addFile(
+			final String localPath, 
+			final String toPath
+		) 
+	{
+		
+		final Map.Entry<SyncFile, File> fileToAdd = fileToAdd(localPath, toPath);
+		
+		//composing call
+		final CloudServiceRequestCall<SyncFile, CloudFileItem> composedCall = 
+			new CloudServiceRequestCall<SyncFile, CloudFileItem>(null)
+			{
+				protected CloudFileItem transform(SyncFile syncFile) {
+					return CloudFileItem.transform(syncFile, CloudSyncbox.this);
+				}
+				
+			};
+			
+		composedCall
+			.preRequest(
+				/*
+				* Adds file to index first
+				*/
+				SyncFile.add(syncBox.id, DeviceInfo.getUUID(), fileToAdd.getKey())
+					.registerHandler(
+						uploadOrDeleteFile(fileToAdd, composedCall)
+					)
+			);
+		
+		return composedCall;
+	}
+	
+	/**
+	 * Adds multiple files to this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		addFiles(
+			final List<String> localPaths, 
+			final String toPath
+		) 
+	{
+		//mapping files to add
+		final List<SyncFile> filesToAdd = new ArrayList<SyncFile>();
+		
+		final Map<String, Map.Entry<SyncFile, File>> filesToUpload = new LinkedHashMap<String, Map.Entry<SyncFile, File>>();
+		
+		for (String path : localPaths) {
+			Map.Entry<SyncFile, File> fileToAdd = fileToAdd(path, toPath);
+			
+			filesToAdd.add(fileToAdd.getKey());
+			
+			filesToUpload.put(fileToAdd.getKey().path(), fileToAdd);
+		}
+		
+		//composing call
+		final CloudServiceRequestCall<List<SyncFile>, List<CloudFileItem>> composedCall = 
+			new CloudServiceRequestCall<List<SyncFile>, List<CloudFileItem>>(null)
+			{
+				protected List<CloudFileItem> transform(List<SyncFile> items) {
+					return CloudFileItem.transformFileList(items, CloudSyncbox.this);
+				}
+			};
+			
+		composedCall
+			.preRequest(
+				/*
+				* Adds all files to index first
+				*/
+				SyncFile.add(syncBox.id, DeviceInfo.getUUID(), filesToAdd)
+					.registerHandler(
+						uploadOrDeleteFiles(filesToUpload, composedCall)
+					)
+			);
+		
+		return composedCall;
+	}
+
+	@SuppressWarnings("serial")
+	private Map.Entry<SyncFile, File> fileToAdd(final String localPath, final String parentPath) {
+		
+		final File file = new File(localPath);
+		
+		if(!file.exists())
+			if(file.isFile()){
+				String fileName = StringUtil.lastPathComponent(file.getAbsolutePath());
+				String directoryName = StringUtil.parentPath(localPath);
+				try {
+					File.createTempFile(
+								fileName.substring(0, fileName.lastIndexOf('.')), 
+								fileName.substring(fileName.lastIndexOf('.')), 
+								new File(directoryName));
+				} catch (IOException e) {
+					
+				}
+			}
+		
+		return 
+			new SimpleEntry<SyncFile, File>(
+				new SyncFile() {
+					{
+						
+						path = String.format("%s%s", StringUtil.slash(parentPath), file.getName());
+						name = file.getName();
+						fileHash = SyncFile.md5(file);
+						fileSize = file.length();
+						
+						Date lastModifiedDate = new Date(file.lastModified());
+						createdDate = lastModifiedDate;
+						modifiedDate = lastModifiedDate;
+					
+						ensureDynamicAttributesSet(this);
+					}
+				},
+				file
+			);
+	}
+	
+	private CloudServiceResponseHandler<SyncEvent> 
+		uploadOrDeleteFile(
+			final Map.Entry<SyncFile, File> fileToUpload,
+			final CloudServiceRequestCall<SyncFile, CloudFileItem> composedCall
+		) 
+	{
+		return new CloudServiceResponseHandler<SyncEvent>() {
+			private SyncItem createdItem;
+			
+			@Override
+			public void onSuccess(CloudServiceResponse response, final SyncEvent createdFileEvent) throws Exception {
+				
+				createdItem = createdFileEvent.item;
+				
+				final CloudFileItem cloudFileItem = CloudFileItem.transform(createdItem, CloudSyncbox.this);
+				
+				final SyncFile createdFile = (SyncFile) createdFileEvent.item;
+				
+				//Uploading
+				if (createdFileEvent.info.status.equals(SyncEventStatus.UPLOAD)) {
+				
+					//notifying listener of progress
+					composedCall.status(
+						new CloudProgressStatus<CloudFileItem>(
+							cloudFileItem, 
+							0, 0
+						)
+					);
+					
+					composedCall
+						.resultRequest(
+							uploadRequest(fileToUpload, createdFile)
+						)
+						.registerHandler(
+							new UploadProgressHandler<CloudFileItem>(
+								cloudFileItem
+							) {
+								//added for reflection purposes so the callback to this doesn't error out given types wouldn't match between this and the parent's
+								public void onSuccess(CloudFileItem uploadedFile) throws Exception {}
+							}
+						);
+					
+				} else {
+					
+					//file already there, just queue a callback
+					composedCall
+						.resultRequest(
+								new CloudServiceRequest<SyncFile>() {
+									
+									protected ServiceEndpoint getBaseEndpoint() {
+										return PlatformServiceEndpoint.SYNC_FILE_UPLOAD;
+									};
+									
+									public void run() {
+										try {
+											success(null, createdFile);
+										} catch (Exception e) {
+											error(null, e);
+										}
+									};
+								}
+						);
+				}
+			}
+			
+			@Override
+			public void onError(CloudServiceResponse response, Exception error) {
+				composedCall.error(error);
+			}
+	
+		};
+	}
+	
+	private CloudServiceResponseHandler<List<SyncEvent>> 
+		uploadOrDeleteFiles(
+			final Map<String, Map.Entry<SyncFile, File>> filesToUpload,
+			final CloudServiceRequestCall<List<SyncFile>, List<CloudFileItem>> composedCall
+		) 
+	{
+		return new CloudServiceResponseHandler<List<SyncEvent>>() {
+			
+			private List<SyncFile> addedFiles = new ArrayList<SyncFile>();
+			private SyncItem createdItem;
+			
+			@Override
+			public void onSuccess(CloudServiceResponse response, final List<SyncEvent> createdFileEvents) throws Exception {
+				
+				for (SyncEvent addEvent : createdFileEvents) {
+					final Entry<SyncFile, File> fileToUpload = filesToUpload.get(addEvent.item.path());
+					
+					final boolean isLast = createdFileEvents.indexOf(addEvent) == createdFileEvents.size() - 1;
+
+					createdItem = addEvent.item;
+					
+					//notifying listener of progress
+					final CloudFileItem cloudFileItem = CloudFileItem.transform(createdItem, CloudSyncbox.this);
+					final List<CloudFileItem> singleItemList = Arrays.asList(cloudFileItem);
+					
+					final SyncFile createdFile = (SyncFile) createdItem;
+					final List<SyncFile> singleFileList = Arrays.asList(createdFile);
+					
+					addedFiles.addAll(singleFileList);
+					
+					//Uploading
+					if (addEvent.info.status.equals(SyncEventStatus.UPLOAD)) {
+					
+						composedCall.status(
+							new CloudProgressStatus<List<CloudFileItem>>(
+								Arrays.asList(cloudFileItem), 
+								0, 0
+							)
+						);
+						
+						final CloudCallHandler<List<CloudFileItem>> 
+								uploadProgressHandler = 
+								
+									new UploadProgressHandler<List<CloudFileItem>>(
+										cloudFileItem
+									) {
+										//added for reflection purposes so the callback to this doesn't error out given types wouldn't match between this and the parent's
+										public void onSuccess(List<CloudFileItem> uploadedFiles) throws Exception {}
+									};
+						
+						composedCall
+							.preRequest(
+								uploadRequests(fileToUpload, singleItemList, createdFile, singleFileList, uploadProgressHandler)
+							);
+						
+					} else {
+						
+						Ln.d("Already uploaded %s - last: %s", createdFile, isLast);
+						
+						//file already there, just queue a callback
+						composedCall
+							.preRequest(
+								new CloudServiceRequest<List<SyncFile>>() {
+									
+									protected ServiceEndpoint getBaseEndpoint() {
+										return PlatformServiceEndpoint.SYNC_FILE_UPLOAD;
+									};
+									
+									public void run() {
+										try {
+											status(null, new UploadProgressStatus<List<CloudFileItem>>() {
+												{
+													content = singleItemList;
+													totalBytes = fileToUpload.getValue().length();
+													completedBytes = totalBytes;
+												}
+											});
+											
+											success(null, singleFileList);
+											
+										} catch (Exception e) {
+											error(null, e);
+										}
+									};
+								}
+							);
+					}
+					
+					if (isLast) { //execute and provide result to composedCall
+						composedCall
+							.resultRequest(
+								new CloudServiceRequest<List<SyncFile>>() {
+									
+									protected ServiceEndpoint getBaseEndpoint() {
+										return PlatformServiceEndpoint.SYNC_FILE_UPLOAD;
+									};
+									
+									public void run() {
+										try {
+											success(null, addedFiles);
+										} catch (Exception e) {
+											error(null, e);
+										}
+									};
+								}
+							);
+					}
+				}
+			}
+			
+			@Override
+			public void onError(CloudServiceResponse response, Exception error) {
+				composedCall.error(error);
+			}
+	
+		};
+	}
+	
+	private CloudUploadRequest uploadRequest(
+			final Map.Entry<SyncFile, File> fileToUpload,
+			final SyncFile createdFile
+		) 
+	{
+		//instantiating a new request instead of passing .upload() directly, as we need to pass back a different result than upload() does (a complete syncFile - same as returned by add - performed by uploadBypassHandler below).
+		return new CloudUploadRequest() {
+		
+			protected ServiceEndpoint getBaseEndpoint() {
+				return PlatformServiceEndpoint.SYNC_FILE_UPLOAD;
+			};
+			
+			public void run() {
+				try {
+					SyncFile
+						.upload(
+							syncBox.id,
+							DeviceInfo.getUUID(),
+							createdFile.uid,
+							createdFile.revision,
+							fileToUpload.getValue()
+						)
+						.get(uploadSyncFileBypassHandler(createdFile, this));
+					
+				} catch (Exception e) {
+					error(null, e);
+				}
+			}
+		};
+	}
+	
+	private CloudServiceRequest<List<SyncFile>> uploadRequests(
+			final Entry<SyncFile, File> fileToUpload,
+			final List<CloudFileItem> singleItemList,
+			final SyncFile createdFile, final List<SyncFile> singleFileList,
+			final CloudCallHandler<List<CloudFileItem>> uploadProgressHandler) {
+		return new CloudServiceRequest<List<SyncFile>>() {
+			
+			@Override
+			protected ServiceEndpoint getBaseEndpoint() {
+				return PlatformServiceEndpoint.SYNC_FILE_UPLOAD;
+			}
+			
+			
+			@Override
+			public void run() {
+				
+				final CloudServiceRequest<List<SyncFile>> uploadRequest = this;
+				
+				uploadRequest(fileToUpload, createdFile)
+					.get(new CloudFileUploadHandler() {
+						
+						@Override
+						public void onSuccess(CloudServiceResponse response, SyncFile responseData)
+								throws Exception {
+							
+							uploadRequest.success(null, singleFileList);
+							
+							uploadProgressHandler.onSuccess(singleItemList);
+						}
+						
+						@SuppressWarnings({ "rawtypes", "unchecked" })
+						@Override
+						public void onStatus(final UploadProgressStatus<SyncFile> upload) {
+							
+							final CloudProgressStatus<List<CloudFileItem>> status = new CloudProgressStatus<List<CloudFileItem>>(
+									singleItemList, 
+									upload.totalBytes, 
+									upload.completedBytes
+									);
+							
+							try {
+								UploadProgressStatus uploadStatus = (UploadProgressStatus) upload;
+								uploadStatus.content = singleItemList;
+								
+								uploadRequest.status(null, uploadStatus);
+								
+							} catch (Exception e) {
+								uploadRequest.error(null, e);
+							}
+							
+							uploadProgressHandler.onStatus(status);
+						}
+						
+						@Override
+						public void onStart() {}
+						
+						@Override
+						public void onError(CloudServiceResponse response, Exception error) {
+							error.printStackTrace();
+						}
+
+					});
+			}
+		};
+	}
+	
+	//handler response for calling back on behalf of the fake CloudUploadRequest created in uploadRequest
+	private CloudFileUploadHandler uploadSyncFileBypassHandler(
+			final SyncFile createdFile, final CloudUploadRequest uploadRequest
+		) 
+	{
+		return new CloudFileUploadHandler() {
+			
+			@Override 
+			public void onSuccess(CloudServiceResponse response, SyncFile uploadedFile) throws Exception {
+				uploadRequest.success(null, createdFile);
+			}
+			
+			@Override
+			public void onStatus(UploadProgressStatus<SyncFile> status) {
+				try {
+					status.content = createdFile;
+					
+					uploadRequest.status(null, status);
+				} catch (Exception e) {
+					error(uploadRequest, null, e);
+				}
+			}
+			
+			@Override 
+			public void onError(CloudServiceResponse response, Exception error) {
+				uploadRequest.error(response, error);
+			}
+			
+			@Override 
+			public void onStart() {
+				try {
+					uploadRequest.start();
+				} catch (Exception e) {
+					error(uploadRequest, null, e);
+				}	
+			}
+		};
+	}
+	
+	private class UploadProgressHandler<T> extends CloudCallHandler<T> {
+		
+		final CloudFileItem cloudFileItem;
+		
+		public UploadProgressHandler(final CloudFileItem cloudFileItem) {
+			this.handlerType = getClass();
+			this.cloudFileItem = cloudFileItem;
+		}
+		
+		@Override
+		public void onSuccess(T uploadedFile) throws Exception {}
+		
+		@Override
+		public void onStatus(CloudProgressStatus<T> status) {
+			//notifying listener of status of upload
+			if (activityListener != null) {
+				activityListener.fileUpload(CloudSyncbox.this, cloudFileItem, status.completedBytes(), status.completedBytes(), status.totalBytes());
+			}
+		}
+		
+		@Override
+		public void onError(Exception error) {
+			deleteFile(error);
+		}
+		
+		private void deleteFile(final Exception originalError) {
+			SyncFile
+				.delete(syncBox.id, DeviceInfo.getUUID(), cloudFileItem.uid(), cloudFileItem.path())
+					.get(null);
+		}
+	}
+
+	/**
+	 * Adds a folder to this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudFileItem>
+		addFolder(
+			final String toPath
+		) 
+	{
+		final String folderPath = toPath;
+		
+		@SuppressWarnings("serial")
+		final SyncFolder folderToAdd = new SyncFolder() {
+			{
+				path = folderPath;
+			}
+		};
+		
+		return 
+			new CloudServiceRequestCall<SyncEvent, CloudFileItem>(
+				SyncFolder.add(syncBox.id, DeviceInfo.getUUID(), folderToAdd)
+			) 
+			{
+				protected CloudFileItem transform(SyncEvent syncEvent) {
+					return CloudFileItem.transform(syncEvent.item, CloudSyncbox.this);
+				}
+			};
+	}
+	/**
+	 * Adds multiple folders to this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		addFolders(
+			final List<String> toPaths
+		) 
+	{
+		@SuppressWarnings("serial")
+		List<SyncFolder> foldersToAdd = 
+			Lists.transform(
+				toPaths, 
+				new Function<String, SyncFolder>() {
+
+					@Override @Nullable
+					public SyncFolder apply(final @Nullable String toFolderPath) {
+						
+						return 
+							new SyncFolder() {
+								{
+									path = toFolderPath;
+								}
+							};
+					}
+				}
+			);
+		
+		return 
+			new CloudServiceRequestCall<List<SyncEvent>, List<CloudFileItem>>(
+				SyncFolder.add(syncBox.id, DeviceInfo.getUUID(), foldersToAdd)
+			) 
+			{
+				protected List<CloudFileItem> transform(List<SyncEvent> syncEvents) {
+					return transformEventsList(syncEvents);
+				}
+			};
+	}
+	
+	/**
+	 * Renames an item on this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudFileItem>
+		renameItem(
+			final CloudFileItem item,
+			final String name
+		) 
+	{
+		boolean isNameFullPath = name.contains("/");
+		
+		String newPath = isNameFullPath ? name : item.path();
+		
+		if (!isNameFullPath) {
+			newPath = StringUtil.parentPath(newPath);
+			newPath += name;
+		}
+		
+		return 
+			new CloudServiceRequestCall<SyncEvent, CloudFileItem>(
+				item.isFolder() ?
+					SyncFolder.rename(syncBox.id, DeviceInfo.getUUID(), null, item.path(), newPath) :
+					  SyncFile.rename(syncBox.id, DeviceInfo.getUUID(), null, item.path(), newPath)
+			) 
+			{
+				protected CloudFileItem transform(SyncEvent syncEvent) {
+					return CloudFileItem.transform(syncEvent.item, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Renames a series of items on this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		renameItems(
+			final List<SyncItem> items
+		) 
+	{
+		final List<SyncFolder> folders = new ArrayList<SyncFolder>();
+		final List<SyncFile> files = new ArrayList<SyncFile>();
+		
+		for (SyncItem item : items) {
+			if (item.isFolder) {
+				folders.add((SyncFolder) item);
+			} else {
+				files.add((SyncFile) item);
+			}
+		}
+		
+		return 
+			executeOperations(
+				SyncFolder.rename(syncBox.id, DeviceInfo.getUUID(), folders),
+				SyncFile.rename(syncBox.id, DeviceInfo.getUUID(), files)
+			); 
+	}
+
+	/**
+	 * Moves an item on this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudFileItem>
+		moveItem(
+			final CloudFileItem item,
+			final CloudFileItem parent
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<SyncEvent, CloudFileItem>(
+				item.isFolder() ?
+					SyncFolder.move(syncBox.id, DeviceInfo.getUUID(), item.uid(), item.path(), null, parent.uid(), null) :
+					  SyncFile.move(syncBox.id, DeviceInfo.getUUID(), item.uid(), item.path(), null, parent.uid(), null)
+			) 
+			{
+				protected CloudFileItem transform(SyncEvent syncEvent) {
+					return CloudFileItem.transform(syncEvent.item, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Moves a series of items on this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		moveItems(
+			final List<CloudFileItem> items,
+			final CloudFileItem parent
+		) 
+	{
+		List<SyncFolder> folders = new ArrayList<SyncFolder>();
+		List<SyncFile> files = new ArrayList<SyncFile>();
+		
+		for (CloudFileItem item : items) {
+			
+			SyncItem syncItem = item.new $Private$Accessor$().syncItem();
+			
+			syncItem.parentUid = parent.uid(); //updating parent
+			
+			if (item.isFolder()) {
+				folders.add((SyncFolder) syncItem);
+			} else {
+				files.add((SyncFile) syncItem);
+			}
+		}
+		
+		return 
+			executeOperations(
+				SyncFolder.move(syncBox.id, DeviceInfo.getUUID(), folders),
+				SyncFile.move(syncBox.id, DeviceInfo.getUUID(), files)
+			); 
+	}
+	
+	/**
+	 * Deletes an item on this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudFileItem>
+		deleteItem(
+			final CloudFileItem item
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<SyncEvent, CloudFileItem>(
+				item.isFolder() ?
+					SyncFolder.delete(syncBox.id, DeviceInfo.getUUID(), item.uid(), item.path()) :
+					  SyncFile.delete(syncBox.id, DeviceInfo.getUUID(), item.uid(), item.path())
+			) 
+			{
+				protected CloudFileItem transform(SyncEvent syncEvent) {
+					return CloudFileItem.transform(syncEvent.item, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Deletes a series of items on this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	@SuppressWarnings("unchecked")
+	public CloudCall<List<CloudFileItem>>
+		deleteItems(
+			final List<CloudFileItem> items
+		) 
+	{
+		List<String> foldersUid = new ArrayList<String>();
+		List<String> filesUid = new ArrayList<String>();
+		
+		for (CloudFileItem item : items) {
+			
+			if (item.isFolder()) {
+				foldersUid.add(item.uid());
+			} else {
+				filesUid.add(item.uid());
+			}
+		}
+		
+		return 
+			executeOperations(
+				SyncFolder.delete(syncBox.id, DeviceInfo.getUUID(), foldersUid, null),
+				SyncFile.delete(syncBox.id, DeviceInfo.getUUID(), filesUid, null),
+				
+				new CloudServiceRequestCall<List<SyncEvent>, List<CloudFileItem>>(null) 
+				{
+					protected List<CloudFileItem> transform(List<SyncEvent> syncEvents) {
+						ArrayList<CloudFileItem> items = new ArrayList<CloudFileItem>();
+						for(SyncEvent event : syncEvents)
+							items.add( CloudFileItem.transform(event.item, CloudSyncbox.this));
+						return items;
+					}
+				}
+			); 
+	}
+	
+	@SuppressWarnings("unchecked")
+	private CloudServiceRequestCall<List<SyncEvent>, List<CloudFileItem>> 
+		executeOperations(
+			final CloudServiceRequest<List<SyncEvent>> folderOperation,
+			final CloudServiceRequest<List<SyncEvent>> fileOperation
+		) 
+	{
+		
+		final CloudServiceRequestCall<List<SyncEvent>, List<CloudFileItem>> 
+			composedCall = 
+			new CloudServiceRequestCall<List<SyncEvent>, List<CloudFileItem>>(null) 
+			{
+				protected List<CloudFileItem> transform(List<SyncEvent> syncEvents) {
+					return transformEventsList(syncEvents);
+				}
+			};
+			
+		return executeOperations(folderOperation, fileOperation, composedCall);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private CloudServiceRequestCall 
+		executeOperations(
+			final CloudServiceRequest<List<SyncEvent>> folderOperation,
+			final CloudServiceRequest<List<SyncEvent>> fileOperation,
+			final CloudServiceRequestCall composedCall
+		) 
+	{
+		composedCall
+			.preRequest(
+				//executing against folders
+				folderOperation
+					.registerHandler(
+						new CloudServiceResponseHandler<List<SyncEvent>>() {
+							
+							@Override
+							public void onSuccess(CloudServiceResponse response,
+									final List<SyncEvent> foldersEvents) throws Exception {
+								
+								composedCall
+									.resultRequest(
+										//executing against files
+										fileOperation
+											.registerHandler(
+												new CloudServiceResponseHandler<List<SyncEvent>>() {
+	
+													@Override
+													public void onSuccess(CloudServiceResponse response, List<SyncEvent> fileEvents)
+															throws Exception {
+														fileEvents.addAll(foldersEvents);
+													}
+	
+													@Override
+													public void onError(CloudServiceResponse response, Exception error) {
+													}
+												}
+											)
+									);
+							}
+							
+							@Override
+							public void onError(CloudServiceResponse response, Exception error) {
+							}
+						}
+					)
+			);
+		
+		return composedCall;
+	}
+	
+	//[end]
+	
+	//[start] Syncbox Content
+	
+	/**
+	 * Retrieves the root folder item for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudFileItem>
+		root() 
+	{
+		return 
+			new CloudServiceRequestCall<SyncFolder, CloudFileItem>(
+				SyncFolder.metadata(id(), null, "/")
+			) 
+			{
+				protected CloudFileItem transform(SyncFolder syncItem) {
+					return CloudFileItem.transform(syncItem, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves an item for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudFileItem>
+		item(
+			final String uid, 
+			final String path
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<SyncItem, CloudFileItem>(
+				SyncItem.get(CloudSyncbox.this.id(), uid, path)
+			) 
+			{
+				protected CloudFileItem transform(SyncItem syncItem) {
+					return CloudFileItem.transform(syncItem, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items under a path for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		items(
+			final String path
+		) 
+	{
+		/* 
+		 * Fetches directly from server every time
+		 * 
+		return 
+			new CloudServiceRequestCall<List<SyncItem>, List<CloudFileItem>>(
+				SyncFolder.contents(CloudSyncbox.this.id(), null, path, 0, false, true)
+			) 
+			{
+				protected List<CloudFileItem> transform(List<SyncItem> syncItems) {
+					return CloudFileItem.transformList(syncItems, CloudSyncbox.this);
+				}
+			};
+		*/
+		
+		/*
+		 * Fetches from cache first and only updates it via deltas
+		 */
+		final SyncDeltaCache cached = SyncDeltaCache.get(syncBox.id, path);
+		
+		return 
+			new CloudServiceRequestCall<SyncDelta, List<CloudFileItem>>(
+				SyncFolder.deltas(CloudSyncbox.this.id(), null, path, cached.sid, true)
+			) 
+			{
+				protected List<CloudFileItem> transform(SyncDelta delta) {
+					return CloudFileItem.transformList(cached.update(delta).items, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items under a folder for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		items(
+			final CloudFileItem folder
+		) 
+	{
+		return items(folder.path());
+	}
+	
+	/**
+	 * Retrieves a series of folders under a path for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		hierarchy(
+			final String path
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<List<SyncFolder>, List<CloudFileItem>>(
+				SyncFolder.hierarchy(CloudSyncbox.this.id(), null, path)
+			) 
+			{
+				protected List<CloudFileItem> transform(List<SyncFolder> syncItems) {
+					return CloudFileItem.transformList(new ArrayList<SyncItem>(syncItems), CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of folders under another folder for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		hierarchy(
+			final CloudFileItem folder
+		) 
+	{
+		return hierarchy(folder.path());
+	}
+	
+	/**
+	 * Retrieves a series of items for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call as well as {@link CloudPagedList} for details on handling paging information.
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		imageItems(
+			final int pageNumber, 
+			int itemsPerPage
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.pictures(CloudSyncbox.this.id(), new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call as well as {@link CloudPagedList} for details on handling paging information.
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		videoItems(
+			final int pageNumber, 
+			int itemsPerPage				
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.videos(CloudSyncbox.this.id(), new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		audioItems(
+			final int pageNumber, 
+			int itemsPerPage
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.audios(CloudSyncbox.this.id(), new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call as well as {@link CloudPagedList} for details on handling paging information.
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		documentItems(
+			final int pageNumber, 
+			int itemsPerPage
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.documents(CloudSyncbox.this.id(), new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call as well as {@link CloudPagedList} for details on handling paging information.
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		presentationItems(
+			final int pageNumber, 
+			int itemsPerPage
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.presentations(CloudSyncbox.this.id(), new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call as well as {@link CloudPagedList} for details on handling paging information.
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		textItems(
+			final int pageNumber, 
+			int itemsPerPage
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.texts(CloudSyncbox.this.id(), new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		archiveItems(
+			final int pageNumber, 
+			int itemsPerPage				
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.archives(CloudSyncbox.this.id(), new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items by searching keywords for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call as well as {@link CloudPagedList} for details on handling paging information.
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		itemsOfTypes(
+			List<String> extensions,
+			final int pageNumber, 
+			int itemsPerPage			
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.extensions(CloudSyncbox.this.id(), extensions, new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of recent items for this Syncbox. 
+	 *
+	 * @return See: {@link CloudCall} for details on handling the result of the call as well as {@link CloudPagedList} for details on handling paging information.
+	 */
+	public CloudCall<CloudPagedList<CloudFileItem>>
+		recentItems(
+			Date sinceDate,
+			final int pageNumber, 
+			int itemsPerPage
+		) 
+	{
+		final int itemsCount = itemsPerPage;
+		
+		return 
+			new CloudServiceRequestCall<PagedList<SyncFile>, CloudPagedList<CloudFileItem>>(
+				SyncFile.recents(CloudSyncbox.this.id(), sinceDate, new PageParams() {
+					{
+						this.page = pageNumber;
+						this.itemsPerPage = itemsCount;
+					}
+				})
+			) 
+			{
+				protected CloudPagedList<CloudFileItem> transform(PagedList<SyncFile> syncItems) {
+					return CloudFileItem.transformPagedList(this, syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	/**
+	 * Retrieves a series of items by searching keywords for this Syncbox. 
+	 *  
+	 * @return See: {@link CloudCall} for details on handling the result of the call. 
+	 */
+	public CloudCall<List<CloudFileItem>>
+		searchItems(
+			String criteria
+		) 
+	{
+		return 
+			new CloudServiceRequestCall<List<SyncFile>, List<CloudFileItem>>(
+				SyncFile.search(CloudSyncbox.this.id(), criteria)
+			) 
+			{
+				protected List<CloudFileItem> transform(List<SyncFile> syncItems) {
+					return CloudFileItem.transformFileList(syncItems, CloudSyncbox.this);
+				}
+			};
+	}
+	
+	public boolean indexingComplete() {
+		return CloudSync.completed(syncBox);
+	}
+	
+	//[end]
+	
+	//[end] Action methods
+	
+	//[start] Transformation methods
+	
+
+	private static CloudSyncbox transform(final SyncBox syncBox) {
+		return 
+			syncBox == null ? 
+				null : 
+				new CloudSyncbox(syncBox);
+	}
+	
+	private static List<CloudSyncbox> transformList(List<SyncBox> syncBoxes, final CloudCredentials credentials) {
+		return 
+			Lists.transform(
+				syncBoxes,
+				
+				new Function<SyncBox, CloudSyncbox>() {
+					
+					@Override @Nullable
+					public CloudSyncbox apply(@Nullable SyncBox syncBox) {
+						return transform(syncBox).credentials(credentials);
+					}
+				}
+			);
+	}
+	
+	private static CloudPagedList<CloudSyncbox> transformPagedList(
+			final CloudCall<CloudPagedList<CloudSyncbox>> request,
+			PagedList<SyncBox> syncBoxes,
+			CloudCredentials credentials
+		) 
+	{
+		return 
+			new CloudPagedList
+				.$Private$Accessor$()
+				.get(
+					transformList(syncBoxes, credentials), 
+					syncBoxes.paging,
+					request
+				);
+	}
+
+	private List<CloudFileItem> transformEventsList(List<SyncEvent> syncEvents) {
+		List<SyncItem> syncItems =
+			Lists.transform(
+				syncEvents, 
+				new Function<SyncEvent, SyncItem>() {
+
+					@Override @Nullable
+					public SyncItem apply(@Nullable SyncEvent event) {
+						return event.item;
+					}
+				}
+			);
+		
+		return CloudFileItem.transformList(syncItems, CloudSyncbox.this);
+	}
+	
+	//[end]
+	
+
+	//Security through obscurity
+	public class $Private$Accessor$ {
+		public SyncBox syncBox() {
+			return syncBox;
+		}
+	}
+	
+	private static final long serialVersionUID = 432419607579010313L;
+	
+	//http://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html
+	
+	/*
+	 * The writeObject method is responsible for writing the state of the object for its particular class so that the corresponding readObject 
+	 * method can restore it. The default mechanism for saving the Object's fields can be invoked by calling out.defaultWriteObject. 
+	 * The method does not need to concern itself with the state belonging to its superclasses or subclasses. State is saved by writing 
+	 * the individual fields to the ObjectOutputStream using the writeObject method or by using the methods for primitive data types supported by DataOutput.
+	 */
+	private void writeObject(java.io.ObjectOutputStream out)
+		     throws IOException{
+		out.writeInt(hashCode());
+		out.writeObject(syncBox.id);
+	}
+	
+	/*
+	 * The readObject method is responsible for reading from the stream and restoring the classes fields. It may call in.defaultReadObject to 
+	 * invoke the default mechanism for restoring the object's non-static and non-transient fields. The defaultReadObject method uses information 
+	 * in the stream to assign the fields of the object saved in the stream with the correspondingly named fields in the current object. 
+	 * This handles the case when the class has evolved to add new fields. The method does not need to concern itself with the state belonging to its 
+	 * superclasses or subclasses. State is saved by writing the individual fields to the ObjectOutputStream using the writeObject method or by using 
+	 * the methods for primitive data types supported by DataOutput.
+	 */
+	@SuppressWarnings("serial")
+	private void readObject(java.io.ObjectInputStream in)
+	     throws IOException, ClassNotFoundException {
+		
+		int tempHashCode = in.readInt();
+		
+		final long syncboxId = (Long)in.readObject();
+		
+		if(syncboxes.containsKey(tempHashCode)) {
+			ReflectionUtil.copyObjectPropertiesFrom(syncboxes.get(tempHashCode), this);
+			this.hashCode = tempHashCode;
+			
+		} else {
+			Ln.w("CloudSyncbox cache empty. Constructing default Syncbox object");
+			
+			syncBox = new SyncBox() {
+				{
+					id = syncboxId;
+				}
+			};
+			
+			engine = CloudSyncEngine.init(CloudApplication.getContext(), syncBox);
+		}
+	}
+	
+	
+	@Override
+	public int hashCode() {
+		return hashCode == -1 ? super.hashCode() : hashCode;
+	}
+}

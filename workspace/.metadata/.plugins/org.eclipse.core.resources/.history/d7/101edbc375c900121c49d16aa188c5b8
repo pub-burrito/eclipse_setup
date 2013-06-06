@@ -1,0 +1,33 @@
+package com.cloud.sdk;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import android.content.Context;
+
+import com.cloud.framework.config.CloudApplication;
+import com.cloud.framework.service.model.sync.SyncBox;
+import com.cloud.sdk.service.sync.CloudSyncbox;
+
+/**
+ * <!--
+ * Cloud.java
+ * -->
+ * Main shortcut class into the SDK/Framework. Use this as a mean to get to basic information and functionality with the Cloud SDK.
+ * 
+ * @author <a href="mailto:roberto@cloud.com">Roberto Andrade</a>
+ * @since 0.1
+ * @date May 13, 2013
+ * @copyright Copyright (c) 2013 Cloud.com. All rights reserved.
+ */
+public class Cloud {
+	
+	public static void init(Context appContext) {
+		CloudApplication.init(appContext);
+	}
+	
+	public static String version() {
+		return CloudApplication.getFrameworkVersion();
+	}
+	
+}

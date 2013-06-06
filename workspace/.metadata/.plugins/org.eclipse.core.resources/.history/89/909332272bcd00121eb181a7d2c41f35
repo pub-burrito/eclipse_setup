@@ -1,0 +1,377 @@
+package com.cloud.test.framework.mocked.net;
+
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.entity.StringEntity;
+import org.hamcrest.Matcher;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import roboguice.util.Ln;
+
+import com.cloud.framework.config.CloudApplication;
+import com.cloud.framework.config.CloudConfiguration;
+import com.cloud.framework.net.json.JSONEntity;
+import com.cloud.framework.net.json.JSONObject;
+import com.cloud.framework.net.proto.CloudIgnitedHttp;
+import com.cloud.framework.net.proto.CloudIgnitedHttp.HttpMethod;
+import com.cloud.framework.service.model.auth.AuthCredentials;
+import com.cloud.test.common.AbstractCloudMockedTest;
+import com.cloud.test.framework.mocked.util.IgnitedHttpMockHelper;
+import com.github.ignition.support.http.IgnitedHttpRequest;
+import com.github.ignition.support.http.IgnitedHttpResponse;
+
+public class CloudIgnitedHttpTest extends AbstractCloudMockedTest {
+
+	@Test
+	public void testMockingIgnitedHttpRequestsAndResponses() throws Exception {
+
+		final String FAKE = "/fake";
+		final String REAL = "/real";
+		final String DYNAMIC = "/dynamic";	
+		final String OTHER = "/.*";	
+		
+		final String fakeContent = "Some faked content";
+		final String realContent = "Some real content";
+		final String dynamicContent = "Some %s dynamic content";
+		final String otherContent = "Some other content";
+		
+		final List<String> adjectives = Arrays.asList("cool", "awesome", "super", "amazing");
+		
+		@SuppressWarnings("serial")
+		Map<String, Object> testResponses = new LinkedHashMap<String, Object>() {
+			{
+				put(CloudConfiguration.serviceEndpoint + FAKE, fakeContent);
+				put(CloudConfiguration.serviceEndpoint + REAL, realContent);
+				put(CloudConfiguration.serviceEndpoint + OTHER, otherContent);
+				
+				put(CloudConfiguration.serviceEndpoint + DYNAMIC, new Answer<String>() {
+
+					@Override
+					public String answer(InvocationOnMock invocation)
+							throws Throwable {
+						
+						Collections.shuffle(adjectives);
+						
+						return String.format(dynamicContent, adjectives.iterator().next());
+					}
+				});
+			}
+		};
+		
+		CloudIgnitedHttp http = IgnitedHttpMockHelper.mockHttpResponses(testResponses);
+		
+		String tested;
+		
+		tested = testGetString(http, FAKE);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(fakeContent)));
+		
+		tested = testGetString(http, REAL);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(realContent)));
+		
+		tested = testGetString(http, "/somethingElse1");
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(otherContent)));
+		
+		tested = testGetString(http, "/somethingElse2");
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(otherContent)));
+		
+		tested = testGetString(http, DYNAMIC);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(anyOf(formatted(dynamicContent, adjectives))));
+
+	}
+	
+	private List<Matcher<? super String>> formatted(String dynamicContent, List<String> list) {
+		List<Matcher<? super String>> matchers = new ArrayList<Matcher<? super String>>();
+		
+		for (String string : list) {
+			matchers.add(equalTo(String.format(dynamicContent, string)));
+		}
+		
+		return matchers;
+	}
+
+	private String testGetString(CloudIgnitedHttp http, String resource) throws Exception {
+		
+		String data = http.call(HttpMethod.GET, CloudConfiguration.serviceEndpoint + resource, null, null, null, String.class, CloudApplication.getCredentials(), null);
+		
+		return data;
+	}
+	
+	@Test
+	public void testImplementedHttpMethods() throws Exception {
+		final String FAKE = "/fake";
+		final String fakeContent = "Some faked content";
+		
+		@SuppressWarnings("serial")
+		Map<String, Object> testResponses = new LinkedHashMap<String, Object>() {
+			{
+				put(CloudConfiguration.serviceEndpoint + FAKE, fakeContent);
+			}
+		};
+		
+		CloudIgnitedHttp http = IgnitedHttpMockHelper.mockHttpResponses(testResponses);
+		
+		String tested;
+
+		tested = http.call(HttpMethod.GET, CloudConfiguration.serviceEndpoint + FAKE, null, null, null, String.class, CloudApplication.getCredentials(), null);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(fakeContent)));
+		
+		tested = http.call(HttpMethod.POST, CloudConfiguration.serviceEndpoint + FAKE, null, null, null, String.class, CloudApplication.getCredentials(), null);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(fakeContent)));
+		
+		tested = http.call(HttpMethod.PUT, CloudConfiguration.serviceEndpoint + FAKE, null, null, new StringEntity(fakeContent), String.class, CloudApplication.getCredentials(), null);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(fakeContent)));
+		
+		tested = http.call(HttpMethod.DELETE, CloudConfiguration.serviceEndpoint + FAKE, null, null, null, String.class, CloudApplication.getCredentials(), null);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(fakeContent)));
+	}
+	
+	@Test
+	public void testParametersAreCorrectlyPassed() throws Exception {
+		
+		final String PARAM1 = "param1";
+		final String PARAM2 = "param2";
+		final String VALUE1 = "value1";
+		final String VALUE2 = "value2";
+		
+		final String endpoint = String.format("%s%s", CloudConfiguration.serviceEndpoint, "/resourceWithParams");
+		final String expectedContent = String.format("%s?%s=%s&%s=%s", endpoint, PARAM1, VALUE1, PARAM2, VALUE2);
+		
+		@SuppressWarnings("serial")
+		Map<String, Object> testParams = new LinkedHashMap<String, Object>() {
+			{
+				put(PARAM1, VALUE1);
+				put(PARAM2, VALUE2);
+			}
+		};
+		
+		//mocking request (called when a get() or post() is called by call() below)	
+		Answer<IgnitedHttpRequest> mockAnswer = new Answer<IgnitedHttpRequest>() {
+
+			public IgnitedHttpRequest answer(InvocationOnMock invocation)
+					throws Throwable {
+				
+				//invocation should contain parameters (either builtin to URL in case of a GET or in the second argument as an HttpEntity
+				Object[] args = invocation.getArguments();
+				String requestURL = (String) args[0];
+				
+				Ln.i("-- Requesting: %s", requestURL);
+				
+				//if POST, append the body of the post to the URL
+				if (args.length > 1 && args[1] instanceof HttpEntity) {
+					HttpEntity entity = (HttpEntity) args[1];
+					
+					String content = CloudIgnitedHttp.readEntityContent(entity);
+					Ln.i("-- Entity: %s", content);
+					
+					requestURL = String.format("%s?%s", requestURL, content);
+					
+					if (content.matches("https?:.*")) {
+						requestURL = content;
+					}
+				}
+
+				//mocking response return methods (return the requested URL as the body of the response for comparison)
+				Entry<IgnitedHttpRequest, IgnitedHttpResponse> mockedRequestAndResponse = IgnitedHttpMockHelper.mockRequestAndResponse();
+				IgnitedHttpRequest mockRequest = mockedRequestAndResponse.getKey();
+				IgnitedHttpResponse mockResponse = mockedRequestAndResponse.getValue();
+
+				Mockito.when(mockResponse.getResponseBodyAsString()).thenReturn(requestURL);
+				
+				return mockRequest;
+			}
+		};
+		
+		CloudIgnitedHttp http = IgnitedHttpMockHelper.mockHttpResponses(mockAnswer);
+		
+		String tested;
+		
+		tested = http.call(HttpMethod.GET, endpoint, testParams, null, null, String.class, CloudApplication.getCredentials(), null);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(expectedContent)));
+		
+		tested = http.call(HttpMethod.POST, endpoint, testParams, null, null, String.class, CloudApplication.getCredentials(), null);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(expectedContent)));
+		
+		tested = http.call(HttpMethod.POST, endpoint, null, null, new StringEntity(expectedContent), String.class, CloudApplication.getCredentials(), null);
+		Ln.i("Response: %s\n", tested);
+		assertThat(tested, is(equalTo(expectedContent)));
+	}
+	
+	@Test
+	public void testCorrectResponseTypeIsReceived() throws Exception {
+		
+		final String endpoint = CloudConfiguration.serviceEndpoint + "/json";
+		final String fakeContent = "{\"key\":\"value\"}";
+		
+		@SuppressWarnings("serial")
+		Map<String, Object> testResponses = new LinkedHashMap<String, Object>() {
+			{
+				put(endpoint, fakeContent);
+			}
+		};
+		
+		CloudIgnitedHttp http = IgnitedHttpMockHelper.mockHttpResponses(testResponses);
+		
+		//Retrieve as String
+		String testedString = http.call(HttpMethod.GET, endpoint, null, null, null, String.class, CloudApplication.getCredentials(), null);
+		
+		Ln.i("Response: %s\n", testedString);
+		assertThat(testedString, is(equalTo(fakeContent)));
+		
+		//Retrieve as byte[]
+		byte[] testedBytes = http.call(HttpMethod.GET, endpoint, null, null, null, byte[].class, CloudApplication.getCredentials(), null);
+		testedString = new String(testedBytes, Charset.forName(CloudIgnitedHttp.CHARSET));
+		
+		Ln.i("Response: %s\n", testedString);
+		assertThat(testedString, is(equalTo(fakeContent)));
+		
+		//Retrieve as JSONObject
+		JSONObject testedJSON = http.call(HttpMethod.GET, endpoint, null, null, null, JSONObject.class, CloudApplication.getCredentials(), null);
+		testedString = testedJSON.toString();
+		
+		Ln.i("Response: %s\n", testedString);
+		assertThat(testedString, is(equalTo(fakeContent)));
+		
+		//Retrieve as InputStream
+		InputStream testedStream = http.call(HttpMethod.GET, endpoint, null, null, null, InputStream.class, CloudApplication.getCredentials(), null);
+		testedString = CloudIgnitedHttp.readInputStream(testedStream);
+		
+		Ln.i("Response: %s\n", testedString);
+		assertThat(testedString, is(equalTo(fakeContent)));
+	}
+	
+	@Test
+	public void testCorrectHeadersAreSet() throws Exception {
+		
+		final String getEndpoint = CloudConfiguration.serviceEndpoint + "/getWithHeaders";
+		final String postFormEndpoint = CloudConfiguration.serviceEndpoint + "/postFormWithHeaders";
+		final String postJSONEndpoint = CloudConfiguration.serviceEndpoint + "/postJSONWithHeaders";
+
+		//mocking request (called when a get() or post() is called by call() below)	
+		Answer<IgnitedHttpRequest> mockAnswer = new Answer<IgnitedHttpRequest>() {
+
+			public IgnitedHttpRequest answer(InvocationOnMock invocation)
+					throws Throwable {
+				
+				//invocation should contain parameters (either builtin to URL in case of a GET or in the second argument as an HttpEntity
+				Object[] args = invocation.getArguments();
+				String requestURL = (String) args[0];
+				
+				Ln.i("-- Requesting: %s", requestURL);
+				
+				//if POST, append the body of the post to the URL
+				if (args.length > 1 && args[1] instanceof HttpEntity) {
+					HttpEntity entity = (HttpEntity) args[1];
+					
+					String content = CloudIgnitedHttp.readEntityContent(entity);
+					Ln.i("-- Entity: %s", content);
+					
+					requestURL = String.format("%s?%s", requestURL, content);
+					
+					if (content.matches("https?:.*")) {
+						requestURL = content;
+					}
+				}
+
+				//mocking response return methods (return the requested URL as the body of the response for comparison)
+				Entry<IgnitedHttpRequest, IgnitedHttpResponse> mockedRequestAndResponse = IgnitedHttpMockHelper.mockRequestAndResponse();
+				final IgnitedHttpRequest mockRequest = mockedRequestAndResponse.getKey();
+				final IgnitedHttpResponse mockResponse = mockedRequestAndResponse.getValue();
+
+				final String requestedURL = requestURL;
+				
+				Mockito.when(mockRequest.send()).thenAnswer(new Answer<IgnitedHttpResponse>() {
+
+					public IgnitedHttpResponse answer(
+							InvocationOnMock invocation) throws Throwable {
+						
+						HttpUriRequest rawRequest = mockRequest.unwrap();
+						Ln.i("Headers: %s", Arrays.asList(rawRequest.getAllHeaders()));
+						
+						//Ensure headers are right (Authorization and Content-Type)
+						assertThat(rawRequest.containsHeader(CloudIgnitedHttp.HEADER_AUTHORIZATION), is(true));
+						
+						Header contentType = rawRequest.getLastHeader(CloudIgnitedHttp.HEADER_CONTENT_TYPE);
+						
+						if (requestedURL.startsWith(getEndpoint)) {
+							assertThat(contentType, is(nullValue()));
+							
+						} else if (requestedURL.startsWith(postFormEndpoint)) {
+							assertThat(contentType, is(not(nullValue())));
+							assertThat(contentType.getValue(), is(equalTo(URLEncodedUtils.CONTENT_TYPE))); // + HTTP.CHARSET_PARAM + CloudIgnitedHttp.CHARSET)));
+							
+						} else if (requestedURL.startsWith(postJSONEndpoint)) {
+							assertThat(contentType, is(not(nullValue())));
+							assertThat(contentType.getValue(), is(equalTo(JSONEntity.CONTENT_TYPE)));
+						}
+						
+						return mockResponse;
+					}
+				});
+				
+				return mockRequest;
+			}
+		};
+		
+		final CloudIgnitedHttp http = IgnitedHttpMockHelper.mockHttpResponses(mockAnswer);
+
+		@SuppressWarnings("serial")
+		Map<String, Object> params = new LinkedHashMap<String, Object>() {
+			{
+				put("param1", "value1");
+				put("param2", "value2");
+			}
+		};
+		
+		AuthCredentials credentials = CloudApplication.getCredentials();
+		
+		//Retrieve as String
+		Ln.i("");
+		Ln.i("Getting content with standard queryStrings");
+		Ln.i("");
+		http.call(HttpMethod.GET, getEndpoint, params, null, null, String.class, credentials, null);
+		
+		Ln.i("");
+		Ln.i("Posting content with standard form encoded body");
+		Ln.i("");
+		http.call(HttpMethod.POST, postFormEndpoint, params, null, null, String.class, credentials, null);
+		
+		Ln.i("");
+		Ln.i("Posting content with json encoded body");
+		Ln.i("");
+		http.call(HttpMethod.POST, postJSONEndpoint, null, null, new JSONEntity(toJson(params)), String.class, credentials, null);
+	}
+
+}

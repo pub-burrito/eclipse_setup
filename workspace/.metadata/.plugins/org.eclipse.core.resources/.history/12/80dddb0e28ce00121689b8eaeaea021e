@@ -1,0 +1,47 @@
+package com.cloud.test.sdk.integration.stepdef;
+
+import roboguice.util.Ln;
+
+import com.cloud.test.sdk.integration.CloudValues;
+import com.cloud.test.sdk.integration.CucumberActivity;
+
+import android.test.ActivityInstrumentationTestCase2;
+
+public class BaseStepDef extends ActivityInstrumentationTestCase2<CucumberActivity>{
+
+	public BaseStepDef(Class<CucumberActivity> activityClass) {
+		super(activityClass);
+		CloudValues.instance(getActivity());
+	}
+	
+	protected CloudValues values(){
+		return CloudValues.instance(getActivity());
+	}
+	
+	protected static void waitFor(int milliseconds) {
+		try {
+			Thread.sleep(milliseconds);
+		} catch (InterruptedException e) {
+			Ln.e(e, "Interrupted while waiting...");
+			throw new RuntimeException(e);
+		}
+	}
+	
+	protected static void waitFor(Object obj, int milliseconds) {
+		try {
+			synchronized (obj) {
+				obj.wait(milliseconds);
+			}
+		} catch (InterruptedException e) {
+			Ln.e(e, "Interrupted while waiting...");
+			throw new RuntimeException(e);
+		}
+	}
+	
+	protected static void stopWaitingFor(Object obj) {
+		synchronized (obj) {
+			obj.notify();
+		}
+	}
+
+}

@@ -1,0 +1,57 @@
+package com.cloud.test.sdk.integration;
+
+import cucumber.api.android.RunWithCucumber;
+import cucumber.api.java.en.Given;
+import cucumber.api.java.en.Then;
+import cucumber.api.java.en.When;
+
+@RunWithCucumber(features="features/1Off_add_operations.feature")
+public class AddOperations extends BaseStepDef {
+
+    public AddOperations(Class<CucumberActivity> activityClass) {
+		super(activityClass);
+	}
+
+    
+	@Given("^I have a Syncbox$")
+    public void I_have_a_Syncbox() {
+        
+    }
+    
+    
+    @When("^I wait (\\d+) Seconds$")
+    public void I_wait_Seconds(int seconds){
+    	
+    }
+    
+    @Given("^I Add File \"([^\"]*)\"$")
+    public void I_Add_the_File(String filename){
+    	
+    }
+
+    @Then("^The File \"([^\"]*)\" Should Exist In The SyncBox$")
+    public void The_File_Should_Exist_In_The_SyncBox(String filename){
+    	
+    }
+    
+    @Given("^I Add the Files \"([^\"]*)\"$")
+    public void I_Add_the_Files(String filenames){
+    	
+    }
+    
+    @Then("^The Files \"([^\"]*)\" Should Exist In The SyncBox$")
+    public void The_Files_Should_Exist_In_The_SyncBox(String filenames){
+    	
+    }
+    
+    @Given("^I Add the Directories \"([^\"]*)\"$")
+    public void I_Add_the_Directory(String directoryName){
+    	
+    }
+    
+    @Then("^The Directory \"([^\"]*)\" Should Exist In The SyncBox$")
+    public void The_Directory_Should_Exist_In_The_SyncBox(String directoryName){
+    	
+    }
+
+}
